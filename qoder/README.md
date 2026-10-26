@@ -207,4 +207,4 @@ http://127.0.0.1:8000/api/search?q=水源&lat=30.521&lon=114.402&max_km=6&topk=3
 | 代码仓库 | 本仓库 `2026-competition-ecosystem` 分支下的 `qoder/` |
 | 运行说明 | 本文档 |
 | 验证样例 | `samples/verify.md` |
-| Qoder 开发记录 | 见 Qoder 工程会话导出 |
+| Qoder 开发记录 | `qoder-deployment.md`（发布标识）+ Qoder 会话导出 |

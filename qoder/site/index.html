@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>野外地调资料检索</title>
+<style>
+  :root { --fg:#1c2530; --muted:#6b7785; --line:#e3e8ee; --bg:#f7f9fb; --accent:#2f6fed; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+         color:var(--fg); background:var(--bg); }
+  header { padding:28px 20px 20px; max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .bar { display:flex; gap:10px; flex-wrap:wrap; }
+  input[type=text] { flex:1 1 320px; padding:11px 14px; border:1px solid var(--line);
+                     border-radius:8px; font-size:15px; background:#fff; }
+  input[type=text]:focus { outline:2px solid rgba(47,111,237,.25); border-color:var(--accent); }
+  button { padding:11px 20px; border:0; border-radius:8px; background:var(--accent);
+           color:#fff; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.55; cursor:default; }
+  .opts { display:flex; gap:18px; align-items:center; margin-top:12px;
+          color:var(--muted); font-size:13px; flex-wrap:wrap; }
+  .opts select { padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  main { max-width:960px; margin:0 auto; padding:0 20px 60px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px;
+          padding:16px 18px; margin-bottom:12px; }
+  .card h3 { margin:0 0 6px; font-size:16px; display:flex; gap:8px; align-items:center; }
+  .tag { font-size:12px; font-weight:400; color:var(--muted);
+         border:1px solid var(--line); border-radius:4px; padding:1px 6px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .note { font-size:14px; }
+  .reason { margin-top:8px; font-size:12px; color:var(--accent); }
+  .empty { text-align:center; color:var(--muted); padding:48px 0; }
+  footer { max-width:960px; margin:0 auto; padding:0 20px 40px;
+           color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>野外地调资料检索</h1>
+  <div class="sub">输入一句话，在 seekdb 里同时做关键词命中与地理距离筛选，RRF 融合两路排名。</div>
+  <div class="bar">
+    <input id="q" type="text" placeholder="例如：附近有水源的露营地 / 适合观测的剖面">
+    <button id="go">检索</button>
+  </div>
+  <div class="opts">
+    <label>半径
+      <select id="km">
+        <option value="1">1 km</option>
+        <option value="3">3 km</option>
+        <option value="6" selected>6 km</option>
+        <option value="10">10 km</option>
+      </select>
+    </label>
+    <label><input id="useGeo" type="checkbox" checked> 使用我的位置（默认取南望山）</label>
+  </div>
+</header>
+<main id="out"></main>
+<footer>线上演示使用内置示例数据；完整 seekdb 检索请按仓库 README 在本地启动。</footer>
+
+<script>
+const CENTER = { lat: 30.521, lon: 114.402 };   // 南望山，示例中心点
+const out = document.getElementById('out');
+const $q = document.getElementById('q');
+const $km = document.getElementById('km');
+const $geo = document.getElementById('useGeo');
+const $go = document.getElementById('go');
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function render(items, note) {
+  if (!items || !items.length) {
+    out.innerHTML = `<div class="empty">${esc(note || '没有找到匹配的点位，试试放宽半径或换个说法')}</div>`;
+    return;
+  }
+  out.innerHTML = items.map(r => `
+    <div class="card">
+      <h3>${esc(r.name)} <span class="tag">${esc(r.kind)}</span></h3>
+      <div class="meta">
+        采集 ${esc(r.collected_at || '—')}
+        · 海拔 ${r.elevation_m ?? '—'} m
+        · 坐标 ${Number(r.lat).toFixed(4)}, ${Number(r.lon).toFixed(4)}
+        ${r.dist_km != null ? ` · <b>${r.dist_km} km</b>` : ''}
+      </div>
+      <div class="note">${esc(r.note || '')}</div>
+      ${r.reason ? `<div class="reason">${esc(r.reason)}</div>` : ''}
+    </div>`).join('');
+}
+
+async function search() {
+  $go.disabled = true;
+  const p = new URLSearchParams({ q: $q.value.trim(), max_km: $km.value, topk: '6' });
+  if ($geo.checked) { p.set('lat', CENTER.lat); p.set('lon', CENTER.lon); }
+  try {
+    const r = await fetch('/api/search?' + p.toString());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    render(d.items, d.note);
+  } catch (e) {
+    out.innerHTML = `<div class="empty">请求失败：${esc(e.message)}<br>请确认后端已启动，且 seekdb 可连接。</div>`;
+  } finally {
+    $go.disabled = false;
+  }
+}
+
+$go.addEventListener('click', search);
+$q.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+$km.addEventListener('change', search);
+
+fetch('/api/records').then(r => r.json()).then(d => render(d.items)).catch(() => {});
+</script>
+</body>
+</html>

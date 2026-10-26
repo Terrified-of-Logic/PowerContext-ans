@@ -8,6 +8,15 @@
 
 ---
 
+## 线上演示
+
+**https://field-survey-search-88ks6uknvo5.qoder.website**
+
+由 **Qoder Sites** 构建并发布。线上版使用内置的 16 条示例点位，与 `seekdb/schema.sql` 逐条一致；
+完整的多路检索请按「二、运行步骤」在本地启动并连接真实 seekdb。
+
+---
+
 ## 零、seekdb 到底承担了什么（可直接核对）
 
 取自 `backend/app.py` 实际执行的 SQL：
@@ -172,3 +181,15 @@ http://127.0.0.1:8000/api/search?q=水源&lat=30.521&lon=114.402&max_km=6&topk=3
 └── samples/
     └── verify.md                   验证样例（3 组输入与预期输出）
 ```
+
+---
+
+## 六、交付物对应
+
+| 赛题要求 | 本项目位置 |
+|---|---|
+| 项目网站网址 | <https://field-survey-search-88ks6uknvo5.qoder.website> |
+| 代码仓库 | 本仓库 `2026-competition-ecosystem` 分支下的 `qoder/` |
+| 运行说明 | 本文档 |
+| 验证样例 | `samples/verify.md` |
+| Qoder 开发记录 | 见 Qoder 工程会话导出 |

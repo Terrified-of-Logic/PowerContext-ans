@@ -40,3 +40,18 @@
 
 `site-published/` 是静态构建产物；真实的 seekdb 检索由 `backend/app.py` 提供，
 需按 `README.md` 在本地启动（公网站点无法直连内网数据库）。
+
+## 五、Qoder 会话截图
+
+![Qoder 会话记录](devlog/qoder-session-2026-10-26.png)
+
+这一页可以核对「项目必须使用 Qoder 开发」。图里能看到四样东西：
+
+1. **左侧**：给 Qoder 的建站指令，以及它的执行反馈
+   （"The 16 rows now match the project SQL exactly… still without publishing"）
+2. **中间**：Qoder 的文件编辑记录 —— `dist/app.js`、`dist/data.js`、`dist/index.html`
+3. **右侧**：站点预览，16 个点位，距离按 6 km 半径计算
+4. **右上角**：站点状态「已发布」
+
+> 截图里 Qoder 提到的是 `seekdb_field_survey.sql`，那是该文件后来归位到
+> `seekdb/schema.sql` 之前的旧名，内容一致。

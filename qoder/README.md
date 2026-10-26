@@ -67,64 +67,102 @@ Python 侧只剩两件事：把候选池按 `kw_hit` 与 `dist_km` 各排一次�
 
 ## 一、环境要求
 
-| 项 | 版本 |
+| 项 | 要求 |
 |---|---|
 | Python | 3.10 及以上 |
-| seekdb | 已启动的实例，可连 2881 端口（MySQL 协议） |
-| 依赖 | `pymysql`、`fastapi`、`uvicorn` |
+| seekdb | 三条获取路径，按平台选（见下） |
+| 依赖 | `pymysql`（必需）、`fastapi` + `uvicorn`（仅网页需要） |
+
+**选哪条路取决于你的系统和有没有现成实例：**
+
+| 你的情况 | 用哪条 | 原因 |
+|---|---|---|
+| **Windows**，没有 seekdb | **路径 B：Docker** | `pylibseekdb` **不提供 Windows 预编译包**，嵌入式在 Windows 上装不上 |
+| **Linux / macOS**，没有 seekdb | **路径 A：嵌入式** | 一条 `pip install` 起一个本地库，不需要端口 |
+| 已经有 seekdb 实例 | **路径 C：直连** | 最省事 |
 
 安装依赖：
 
 ```bash
-pip install pymysql fastapi uvicorn
+pip install pymysql              # init / verify 只需要这个
+pip install fastapi uvicorn      # 只有 serve 需要
 ```
+
 
 ---
 
 ## 二、运行步骤
 
-### 1. 建库并导入示例数据
+### 路径 A：嵌入式（Linux / macOS，评审首选）
+
+不需要服务器、不需要端口，`run.py` 会在当前目录建一个 `seekdb.db`。
 
 ```bash
-mysql -h <seekdb主机> -P 2881 -u root -p < seekdb/schema.sql
+pip install pylibseekdb pymysql
+export SEEKDB_EMBEDDED=1
+python3 run.py init
 ```
 
-> 如果你的 seekdb 没有密码，去掉 `-p`。
-> 执行完成后应生成数据库 `field_survey` 与表 `records`，共 **16 条**记录。
+> ⚠️ `pylibseekdb` 只提供 Linux / macOS 的预编译包，**Windows 装不上**。Windows 请走路径 B。
 
-自检：
+### 路径 B：Docker（Windows 首选）
 
 ```bash
-mysql -h <seekdb主机> -P 2881 -u root -p -e "SELECT COUNT(*) FROM field_survey.records;"
+docker run -d --name seekdb -p 2881:2881 -v ./data:/var/lib/oceanbase oceanbase/seekdb:latest
 ```
 
-预期输出 `16`。
-
-### 2. 配置连接串
-
-用环境变量传，不要把密码写进代码：
+等 30 秒左右让实例起来，然后：
 
 ```bash
 # macOS / Linux
 export SEEKDB_HOST=127.0.0.1
 export SEEKDB_PORT=2881
 export SEEKDB_USER=root
-export SEEKDB_PASSWORD=你的密码
+export SEEKDB_PASSWORD=
 
 # Windows PowerShell
 $env:SEEKDB_HOST="127.0.0.1"
 $env:SEEKDB_PORT="2881"
 $env:SEEKDB_USER="root"
-$env:SEEKDB_PASSWORD="你的密码"
+$env:SEEKDB_PASSWORD=""
+
+python run.py init
 ```
 
-### 3. 启动服务
+### 路径 C：直连已有实例
 
 ```bash
-python backend/app.py
+export SEEKDB_HOST=<seekdb主机>
+export SEEKDB_PORT=2881
+export SEEKDB_USER=root
+export SEEKDB_PASSWORD=<密码>
+
+python3 run.py init
+```
+
+### 四条路径共同的下一步
+
+```bash
+python3 run.py init      # 建库 + 建表 + 导入 16 条
+python3 run.py verify    # 四组查询自检
+```
+
+`init` 成功会打印：
+
+```
+完成：field_survey.records 共 16 条
+```
+
+`verify` 会逐个用例打印 PASS/FAIL，最后一行是 `全部通过`。
+
+### 启动网页
+
+```bash
+python3 run.py serve
 ```
 
 打开 <http://127.0.0.1:8000> 。
+
 
 ---
 

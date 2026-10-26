@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>野外地调资料检索</title>
+  <meta name="description" content="用一句话检索野外剖面、采样点、观测点和露营地，按匹配度与距离排序。">
+  <meta name="theme-color" content="#f3f6f3">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%232f6b4f'/%3E%3Cpath%20d='M16%205%208.5%2026l7.5-4%207.5%204L16%205Z'%20fill='%23f7faf8'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">
+            <path d="M16 4 8.5 26l7.5-4 7.5 4L16 4Z"></path>
+            <path d="M16 14v4" stroke-linecap="round"></path>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">野外地调</span>
+          <span class="brand-sub">FIELD NOTES</span>
+        </span>
+      </div>
+      <span class="demo-badge">16 条内置示例</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro" aria-labelledby="pageTitle">
+      <h1 id="pageTitle">野外地调资料检索</h1>
+      <p>剖面、采样点、观测点、露营地散落在不同的记录里。用一句话描述需求，直接找回最相关的点位。</p>
+    </section>
+
+    <section class="search-panel" aria-label="检索条件">
+      <form id="searchForm" role="search" autocomplete="off">
+        <div class="search-row">
+          <div class="search-field">
+            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m16.2 16.2 4.3 4.3"></path>
+            </svg>
+            <label class="visually-hidden" for="searchInput">搜索野外点位</label>
+            <input id="searchInput" name="q" type="search" placeholder="例如：附近有水源的露营地" autocomplete="off" spellcheck="false">
+            <button type="button" id="clearSearch" class="clear-search" aria-label="清空搜索" hidden>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18"></path>
+              </svg>
+            </button>
+          </div>
+          <button type="submit" class="search-button">检索</button>
+        </div>
+      </form>
+
+      <div class="examples" aria-label="示例检索">
+        <span class="examples-label">试试</span>
+        <button type="button" class="example-chip">附近有水源的露营地</button>
+        <button type="button" class="example-chip">适合观测的剖面</button>
+        <button type="button" class="example-chip">能扎帐篷、车能开到的地方</button>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label for="radius">半径</label>
+          <div class="select" id="radiusWrap">
+            <select id="radius">
+              <option value="1">1 km</option>
+              <option value="3">3 km</option>
+              <option value="6" selected>6 km</option>
+              <option value="10">10 km</option>
+            </select>
+          </div>
+        </div>
+        <label class="checkbox">
+          <input type="checkbox" id="useLocation">
+          <span>使用我的位置</span>
+        </label>
+        <p class="filter-note" id="locationNote">未启用定位，显示全部点位；勾选后按半径筛选，距离按示例坐标估算</p>
+      </div>
+    </section>
+
+    <p class="result-summary" id="resultSummary" aria-live="polite"></p>
+
+    <div class="cards" id="resultList" role="list"></div>
+
+    <section class="empty-state" id="emptyState" aria-labelledby="emptyTitle" hidden>
+      <div class="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+          <circle cx="27" cy="27" r="15"></circle>
+          <path d="m38.5 38.5 11 11"></path>
+          <path d="M19 29c3.6-5.4 7.2 5.4 10.8 0 1.8-2.7 3.6-2.7 5.4 0" opacity=".55"></path>
+        </svg>
+      </div>
+      <h2 id="emptyTitle">这一带暂时没有匹配的点位</h2>
+      <p id="emptyText">换个关键词，或把检索半径扩大一些再试一次。</p>
+      <div class="empty-actions">
+        <button type="button" class="button-primary" id="widenRadius" hidden>扩大到 10 km</button>
+        <button type="button" class="button-ghost" id="clearAll" hidden>清空搜索</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p>线上演示使用内置示例数据；完整 seekdb 检索请按仓库 README 在本地启动。</p>
+    </div>
+  </footer>
+
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

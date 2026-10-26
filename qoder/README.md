@@ -15,6 +15,16 @@
 由 **Qoder Sites** 构建并发布。线上版使用内置的 16 条示例点位，与 `seekdb/schema.sql` 逐条一致；
 完整的多路检索请按「二、运行步骤」在本地启动并连接真实 seekdb。
 
+### 两套前端的分工
+
+| 目录 | 是什么 | 数据来源 |
+|---|---|---|
+| `site/` | 本地版，随 `backend/app.py` 一起跑 | 每次检索实时查询 **seekdb** |
+| `site-published/` | 线上版的构建产物，与上面那个网址**逐字节对应** | 内置 `data.js`（16 条，与 schema 一致） |
+
+之所以不合并成一套：Qoder Sites 发布的是**静态站点**，它够不到内网的 seekdb；
+而本地版必须真实查询数据库才能体现 seekdb 的作用。两者数据同源，展示与验证分工明确。
+
 ---
 
 ## 零、seekdb 到底承担了什么（可直接核对）
@@ -177,9 +187,14 @@ http://127.0.0.1:8000/api/search?q=水源&lat=30.521&lon=114.402&max_km=6&topk=3
 ├── backend/
 │   └── app.py                      FastAPI 服务：seekdb 查询 + RRF 融合
 ├── site/
-│   └── index.html                  前端页面
+│   └── index.html                  本地版前端，检索时调用后端
+├── site-published/                 线上版构建产物（Qoder Sites 发布的那一版）
+│   ├── index.html
+│   ├── app.js
+│   ├── data.js
+│   └── styles.css
 └── samples/
-    └── verify.md                   验证样例（3 组输入与预期输出）
+    └── verify.md                   验证样例（4 组输入与预期输出）
 ```
 
 ---

@@ -27,6 +27,7 @@ CFG = dict(
     user=os.getenv("SEEKDB_USER", "root"),
     password=os.getenv("SEEKDB_PASSWORD", ""),
     charset="utf8mb4",
+    ssl=({} if os.getenv("SEEKDB_SSL", "") == "1" else None),
 )
 DBNAME = os.getenv("SEEKDB_DB", "field_survey")
 
@@ -96,10 +97,18 @@ def cmd_init():
     stmts = split_sql(open(SCHEMA, encoding="utf-8").read())
     # 只执行 DDL/DML，跳过文件末尾的演示查询
     keep = [s for s in stmts if re.match(r"(?is)^(create|drop|insert|use)\b", s)]
+
+    # 托管实例（云试用）只给一个固定库，不允许 CREATE DATABASE
+    skip_create = os.getenv("SEEKDB_SKIP_CREATE", "") == "1"
+    if skip_create:
+        keep = [s for s in keep
+                if not re.match(r"(?is)^(create\s+database|use)\b", s)]
+        tell("托管模式：跳过 CREATE DATABASE / USE，直接使用库 %s" % DBNAME)
+
     tell("准备执行 %d 条语句（共解析出 %d 条，跳过 %d 条演示查询）"
          % (len(keep), len(stmts), len(stmts) - len(keep)))
 
-    conn = connect()
+    conn = connect(with_db=skip_create)
     try:
         with conn.cursor() as cur:
             for s in keep:

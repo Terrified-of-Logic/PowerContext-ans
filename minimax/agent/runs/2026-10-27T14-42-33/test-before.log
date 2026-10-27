@@ -1,0 +1,186 @@
+TAP version 13
+# Subtest: R1 按状态过滤：只返回指定状态的订单
+not ok 1 - R1 按状态过滤：只返回指定状态的订单
+  ---
+  duration_ms: 6.1841
+  type: 'test'
+  location: 'C:\\Users\\zhangzhiyuan\\Documents\\deepseek-harness\\default-workspace\\minimax\\business\\test\\orders.test.js:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'A005',
+    +   'A004',
+        'A003',
+    +   'A002',
+        'A001'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'A003'
+    1: 'A001'
+  actual:
+    0: 'A005'
+    1: 'A004'
+    2: 'A003'
+    3: 'A002'
+    4: 'A001'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/zhangzhiyuan/Documents/deepseek-harness/default-workspace/minimax/business/test/orders.test.js:20:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R1 状态为空字符串时返回空数组
+not ok 2 - R1 状态为空字符串时返回空数组
+  ---
+  duration_ms: 2.095
+  type: 'test'
+  location: 'C:\\Users\\zhangzhiyuan\\Documents\\deepseek-harness\\default-workspace\\minimax\\business\\test\\orders.test.js:23:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   {
+    +     amount: 210,
+    +     created_at: '2026-03-05T10:00:00Z',
+    +     id: 'A005',
+    +     status: 'shipped'
+    +   },
+    +   {
+    +     amount: 50,
+    +     created_at: '2026-03-04T10:00:00Z',
+    +     id: 'A004',
+    +     status: 'cancelled'
+    +   },
+    +   {
+    +     amount: 300,
+    +     created_at: '2026-03-03T10:00:00Z',
+    +     id: 'A003',
+    +     status: 'paid'
+    +   },
+    +   {
+    +     amount: 80.5,
+    +     created_at: '2026-03-02T10:00:00Z',
+    +     id: 'A002',
+    +     status: 'pending'
+    +   },
+    +   {
+    +     amount: 120,
+    +     created_at: '2026-03-01T10:00:00Z',
+    +     id: 'A001',
+    +     status: 'paid'
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      id: 'A005'
+      status: 'shipped'
+      amount: 210
+      created_at: '2026-03-05T10:00:00Z'
+    1:
+      id: 'A004'
+      status: 'cancelled'
+      amount: 50
+      created_at: '2026-03-04T10:00:00Z'
+    2:
+      id: 'A003'
+      status: 'paid'
+      amount: 300
+      created_at: '2026-03-03T10:00:00Z'
+    3:
+      id: 'A002'
+      status: 'pending'
+      amount: 80.5
+      created_at: '2026-03-02T10:00:00Z'
+    4:
+      id: 'A001'
+      status: 'paid'
+      amount: 120
+      created_at: '2026-03-01T10:00:00Z'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/zhangzhiyuan/Documents/deepseek-harness/default-workspace/minimax/business/test/orders.test.js:25:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R1 status 省略时返回全部状态
+ok 3 - R1 status 省略时返回全部状态
+  ---
+  duration_ms: 0.6403
+  type: 'test'
+  ...
+# Subtest: R2 金额下限过滤
+ok 4 - R2 金额下限过滤
+  ---
+  duration_ms: 0.5896
+  type: 'test'
+  ...
+# Subtest: R2 金额下限为负数时按 0 处理
+ok 5 - R2 金额下限为负数时按 0 处理
+  ---
+  duration_ms: 0.2343
+  type: 'test'
+  ...
+# Subtest: R3 按创建时间倒序
+ok 6 - R3 按创建时间倒序
+  ---
+  duration_ms: 0.2623
+  type: 'test'
+  ...
+# Subtest: R3 无法解析的 created_at 排在最后且不抛异常
+ok 7 - R3 无法解析的 created_at 排在最后且不抛异常
+  ---
+  duration_ms: 0.4155
+  type: 'test'
+  ...
+# Subtest: R4 limit 省略时默认 20
+ok 8 - R4 limit 省略时默认 20
+  ---
+  duration_ms: 0.437
+  type: 'test'
+  ...
+# Subtest: R4 limit 大于 100 时按 100 处理
+ok 9 - R4 limit 大于 100 时按 100 处理
+  ---
+  duration_ms: 1.2868
+  type: 'test'
+  ...
+# Subtest: R4 limit 小于 1 时返回空数组
+ok 10 - R4 limit 小于 1 时返回空数组
+  ---
+  duration_ms: 0.7875
+  type: 'test'
+  ...
+# Subtest: C2 不修改传入的数组
+ok 11 - C2 不修改传入的数组
+  ---
+  duration_ms: 0.4139
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 9
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 40.1768

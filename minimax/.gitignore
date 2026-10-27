@@ -1,0 +1,11 @@
+# 依赖
+node_modules/
+
+# seekdb 运行时数据
+context/data/
+data/
+
+# 临时文件
+*.tmp
+.DS_Store
+Thumbs.db

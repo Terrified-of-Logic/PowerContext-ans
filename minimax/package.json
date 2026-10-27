@@ -1,0 +1,19 @@
+{
+  "name": "minimax-sdd-context",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "规有所依：面向软件持续演进的 SDD 上下文管理系统",
+  "scripts": {
+    "ingest": "node context/cli.mjs ingest",
+    "context": "node context/cli.mjs context --task",
+    "stats": "node context/cli.mjs stats",
+    "status": "node context/cli.mjs status",
+    "test:business": "node business/test/orders.test.js",
+    "agent": "node agent/run.mjs"
+  },
+  "dependencies": {
+    "@oceanbase/seekdb-node": "^1.4.0",
+    "mysql2": "^3.24.6"
+  }
+}

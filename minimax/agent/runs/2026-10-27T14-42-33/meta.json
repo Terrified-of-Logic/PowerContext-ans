@@ -1,0 +1,14 @@
+{
+  "task": "实现按状态过滤：只返回指定状态的订单",
+  "stamp": "2026-10-27T14-42-33",
+  "ms": 15685,
+  "chars": 1067,
+  "beforeLines": 46,
+  "afterLines": 47,
+  "usage": {
+    "total_tokens": 1382,
+    "total_characters": 0,
+    "prompt_tokens": 1021,
+    "completion_tokens": 361
+  }
+}

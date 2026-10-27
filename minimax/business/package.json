@@ -1,0 +1,10 @@
+{
+  "name": "minimax-business",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "业务工程：订单查询模块（被上下文模块改造的对象）",
+  "scripts": {
+    "test": "node test/orders.test.js"
+  }
+}

@@ -8,6 +8,18 @@
 
 ---
 
+## 提交信息（评审用）
+
+| 项 | 值 |
+|---|---|
+| 项目网站 | <https://field-survey-search-88ks6uknvo5.qoder.website>（Qoder Sites 发布，「任何人都可访问」） |
+| **Qoder 账号 UID** | **`01a17383-1d13-7793-9df9-dbc233d1b6ab`**（用于核对站点归属及使用记录） |
+| 代码仓库 | <https://github.com/Terrified-of-Logic/PowerContext-ans>（`qoder/` 目录；提测分支见平台记录） |
+| Qoder 开发记录 | [`qoder-deployment.md`](qoder-deployment.md)（发布标识 + 时间线）+ [`devlog/qoder-session-2026-10-26.png`](devlog/qoder-session-2026-10-26.png)（会话截图） |
+| 运行说明 / 验证样例 | 本文件 / [`samples/verify.md`](samples/verify.md) |
+
+---
+
 ## 线上演示
 
 **https://field-survey-search-88ks6uknvo5.qoder.website**
@@ -246,3 +258,4 @@ http://127.0.0.1:8000/api/search?q=水源&lat=30.521&lon=114.402&max_km=6&topk=3
 | 运行说明 | 本文档 |
 | 验证样例 | `samples/verify.md` |
 | Qoder 开发记录 | `qoder-deployment.md`（发布标识）+ Qoder 会话导出 |
+| **Qoder 账号 UID** | **`01a17383-1d13-7793-9df9-dbc233d1b6ab`** |

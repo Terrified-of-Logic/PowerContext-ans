@@ -9,6 +9,7 @@
 |---|---|
 | 站点名称 | 野外地调资料检索 |
 | 线上地址 | <https://field-survey-search-88ks6uknvo5.qoder.website> |
+| **Qoder 账号 UID** | **`01a17383-1d13-7793-9df9-dbc233d1b6ab`** |
 | siteId | `01a1783c-761a-7c45-b295-06325b16d732` |
 | projectId | `01a1783c-7618-7473-a351-db68687246a1` |
 | deploymentId | `01a17844-122f-71ed-9438-9d0824a12a89` |

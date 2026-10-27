@@ -1,0 +1,13 @@
+services:
+  midnight-memory:
+    build: .
+    environment:
+      MIDNIGHT_TOKEN: ${MIDNIGHT_TOKEN:?Set a random MIDNIGHT_TOKEN}
+      MIDNIGHT_DATA: /data
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - midnight-data:/data
+    restart: unless-stopped
+volumes:
+  midnight-data:

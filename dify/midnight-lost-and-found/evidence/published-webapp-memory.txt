@@ -1,0 +1,42 @@
+Browser tab: 493817671, Title: "午夜失物招领处 · AI叙事 - Dify", URL: "https://udify.app/chat/1uXn4jV3iOOk1UzB".
+0 AXWebArea 午夜失物招领处 · AI叙事 - Dify, URL: udify.app/chat/1uXn4jV3iOOk1UzB
+	1 container
+		2 text 🌙
+		3 text 午夜失物招领处 · AI叙事
+		4 button 收起侧边栏
+		5 button 开启新对话
+		94 button 上次我选了什么、付了什么代价、最后把物品放哪里了？
+		95 pop up button (collapsed) Description: 更多, ID: base-ui-_r_20_, Secondary Actions: Expand
+		26 button 开门请求
+		27 pop up button (collapsed) Description: 更多, ID: base-ui-_r_o_, Secondary Actions: Expand
+		6 pop up button (collapsed) Description: 更多, ID: base-ui-_r_3_, Secondary Actions: Expand
+		7 text POWERED BY
+		8 image Dify
+		9 button 展开侧边栏
+		10 text 🌙
+		96 button Description: 重置对话, ID: base-ui-_r_1s_
+		12 container
+			89 text 🤖
+			90 container
+				91 text 欢迎来到午夜失物招领处。输入‘开门’开始；离开后再来，阿迟也会记得你的收据。
+				92 button 开门
+				93 button 档案
+			97 text 上次我选了什么、付了什么代价、最后把物品放哪里了？
+			98 text 🤖
+			99 container
+				100 checkbox Description: 用户反馈: 赞同, Value: 0
+				101 pop up button (collapsed) Description: 用户反馈: 反对, ID: base-ui-_r_1q_, Secondary Actions: Expand
+				102 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+					103 image 工作流运行成功
+					104 text 交还收据
+				105 heading 午夜失物招领处, Value: 3
+					106 text 午夜失物招领处
+				107 text 阿迟微微一笑，摊开手中的收据，指着上面写道：“你上次选择的是一把倒着下雨的伞，代价是一则冷笑话，最后则归还给了失主。说起来，那冷笑话可真是让人捧腹啊！” 他眨了眨眼，接着说道：“你知道为什么雨伞总是失踪吗？因为它们总是想要‘遮风挡雨’！”说完，他忍不住轻声笑了起来，仿佛这个冷笑话是他心底的小秘密。 “那么，今天你有什么想要找的失物吗？或者，准备好再给我一个冷笑话的代价？”阿迟的眼中闪烁着期待的光芒。 重新开局 · 开始下一夜
+				108 text 档案 · 查看旧账本
+				109 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+			110 container
+				111 text entry area (settable)
+				112 button (disabled) 发送
+		20 container Notifications
+
+The focused UI element is 111 text entry area (settable)

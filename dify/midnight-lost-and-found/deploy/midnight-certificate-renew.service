@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew the Midnight memory HTTPS certificate
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/midnight-certbot/bin/certbot renew --cert-name midnight-memory --config-dir /etc/midnight-letsencrypt --work-dir /var/lib/midnight-certbot --logs-dir /var/log/midnight-certbot --quiet --deploy-hook "/usr/sbin/nginx -t && /bin/systemctl reload nginx"
+MemoryMax=192M
+CPUQuota=50%

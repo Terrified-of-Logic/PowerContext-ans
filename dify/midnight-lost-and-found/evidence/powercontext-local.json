@@ -1,0 +1,68 @@
+{
+  "executed_at": "2026-10-26T13:51:00.512997+00:00",
+  "kind": "local HTTP + exported code nodes + real PowerContext; no Dify platform execution",
+  "transcript": [
+    {
+      "input": "开门",
+      "answer": "### 午夜失物招领处\n\n零点的钟只响了十一下。店主阿迟说：这里寄存的，都是现实放不下的东西。\n\n1 · 倒着下雨的伞\n2 · 通往昨天的车票\n3 · 总慢半拍的影子\n\n---\n输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。",
+      "write": {
+        "saved": true,
+        "revision": 0,
+        "replayed": false
+      }
+    },
+    {
+      "input": "1",
+      "answer": "### 午夜失物招领处\n\n你拿起了“倒着下雨的伞”。伞里藏着失主没说出口的一句道歉。\n\n1 · 一个秘密\n2 · 一分钟明天\n3 · 一个冷笑话\n\n---\n输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。",
+      "write": {
+        "saved": true,
+        "revision": 1,
+        "replayed": false
+      }
+    },
+    {
+      "input": "3",
+      "answer": "### 午夜失物招领处\n\n你以“一个冷笑话”换取了“倒着下雨的伞”的认领资格。阿迟盖章：代价已付，去向由你。\n\n1 · 归还失主\n2 · 暂存店中\n3 · 带回现实\n\n---\n输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。",
+      "write": {
+        "saved": true,
+        "revision": 2,
+        "replayed": false
+      }
+    },
+    {
+      "input": "1",
+      "answer": "### 午夜失物招领处\n\n第1夜：倒着下雨的伞；代价：一个冷笑话；去向：归还失主。阿迟把收据折成纸鹤：下次见，我会记得。\n\n重新开局 · 开始下一夜\n档案 · 查看旧账本\n\n---\n输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。",
+      "write": {
+        "saved": true,
+        "revision": 3,
+        "replayed": false
+      }
+    }
+  ],
+  "first_pid": 29048,
+  "second_pid": 19232,
+  "after_restart": {
+    "scope_id": "scp_3pmxq8jgp3n5rcams002wk9ypk",
+    "revision": 3,
+    "state": {
+      "stage": "ended",
+      "round": 1,
+      "item": "倒着下雨的伞",
+      "price": "一个冷笑话",
+      "receipts": [
+        "第1夜：倒着下雨的伞；代价：一个冷笑话；去向：归还失主。"
+      ]
+    },
+    "citation": {
+      "memory_ref": {
+        "family": "memory",
+        "artifact_id": "memory",
+        "revision": 3
+      },
+      "entry_id": "mem_ent_97eadec9d4ad48389f3768a81fcadfa1",
+      "entry_version_id": "mem_ver_81c7bf7b60f04736aefaf90230cfa383"
+    }
+  },
+  "isolation_passed": true,
+  "restart_passed": true
+}

@@ -1,0 +1,82 @@
+Browser tab: 493817671, Title: "午夜失物招领处 · AI叙事 - Dify", URL: "https://udify.app/chat/1uXn4jV3iOOk1UzB".
+0 AXWebArea 午夜失物招领处 · AI叙事 - Dify, URL: udify.app/chat/1uXn4jV3iOOk1UzB
+	1 container
+		2 text 🌙
+		3 text 午夜失物招领处 · AI叙事
+		4 button 收起侧边栏
+		5 button 开启新对话
+		26 button 开门请求
+		27 pop up button (collapsed) Description: 更多, ID: base-ui-_r_o_, Secondary Actions: Expand
+		6 pop up button (collapsed) Description: 更多, ID: base-ui-_r_3_, Secondary Actions: Expand
+		7 text POWERED BY
+		8 image Dify
+		9 button 展开侧边栏
+		10 text 🌙
+		28 button Description: 重置对话, ID: base-ui-_r_k_
+		12 container
+			21 text 🤖
+			22 container
+				23 text 欢迎来到午夜失物招领处。输入‘开门’开始；离开后再来，阿迟也会记得你的收据。
+				24 button 开门
+				25 button 档案
+			29 text 开门
+			30 text 🤖
+			31 container
+				32 checkbox Description: 用户反馈: 赞同, Value: 0
+				33 pop up button (collapsed) Description: 用户反馈: 反对, ID: base-ui-_r_i_, Secondary Actions: Expand
+				34 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+					35 image 工作流运行成功
+					36 text 交还收据
+				37 heading 午夜失物招领处, Value: 3
+					38 text 午夜失物招领处
+				39 text 午夜的钟声如同轻柔的低语，阿迟微微一笑，开门迎接你。店内的灯光柔和，洒在陈列的各式物品上，仿佛在讲述每一个被遗忘的故事。 “欢迎光临！这里寄存的，都是现实放不下的东西。”阿迟说，眼中闪烁着古怪的光芒，“你知道为什么钟只响了十一下吗？因为它在提醒我们，有些东西，即使失去，也依然在心里回响。” 他指了指墙上的一幅画，上面画着一只正在追逐月亮的猫。“这只猫是我上次交易的，主人说，它总是追逐着那些无法抓住的梦想。” “你有想要寄存的东西吗？或者只是来看看那些被遗忘的故事？”阿迟微笑着，等待你的回答。 1 · 倒着下雨的伞
+				40 text 2 · 通往昨天的车票
+				41 text 3 · 总慢半拍的影子
+				42 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+			43 text 1
+			44 text 🤖
+			45 container
+				46 checkbox Description: 用户反馈: 赞同, Value: 0
+				47 pop up button (collapsed) Description: 用户反馈: 反对, ID: base-ui-_r_10_, Secondary Actions: Expand
+				48 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+					49 image 工作流运行成功
+					50 text 交还收据
+				51 heading 午夜失物招领处, Value: 3
+					52 text 午夜失物招领处
+				53 text 夜深人静，午夜失物招领处的灯光透出温暖的光辉。我微微一笑，看到你手握着那把“倒着下雨的伞”。“这伞真有意思，”我说道，“它不仅可以挡雨，还能让你感受到失主未说出口的那句道歉。” 我慢慢走近，故作神秘地说：“你知道吗，伞里藏着的道歉，可能是因为某个下雨天的争吵，或者是因为不小心打翻了别人的咖啡。”我停顿了一下，故意加重语气，“有时候，雨水也能洗去误会哦！” 你看着我，似乎在思考这把伞的意义。随后，我又补充道：“不过，记得如果下雨了，伞要反着撑哦，这样才能让道歉顺利飞出去。” 1 · 一个秘密
+				54 text 2 · 一分钟明天
+				55 text 3 · 一个冷笑话
+				56 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+			57 text 3
+			58 text 🤖
+			59 container
+				60 checkbox Description: 用户反馈: 赞同, Value: 0
+				61 pop up button (collapsed) Description: 用户反馈: 反对, ID: base-ui-_r_17_, Secondary Actions: Expand
+				62 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+					63 image 工作流运行成功
+					64 text 交还收据
+				65 heading 午夜失物招领处, Value: 3
+					66 text 午夜失物招领处
+				67 text 在昏暗的灯光下，阿迟微微一笑，嘴角勾起一抹古怪的弧度：“欢迎回来，看来你对这把倒着下雨的伞很感兴趣呀！不过，在交接之前，你想听听我的冷笑话吗？” 他略一停顿，继续说道：“为什么伞总是喜欢下雨？因为它们想要洗个澡啊！” 阿迟乐呵呵地看着你，似乎对自己的幽默感相当满意。他伸出手，轻轻把那把伞递给你，伞面上闪烁着神秘的光泽，仿佛在向你招手：“代价已付，去向由你。希望这把伞能带给你意想不到的惊喜！” 你接过伞，心中充满了期待和好奇，正准备离开，阿迟又神秘地补充了一句：“记得，不要在晴天使用哦，伞会感到孤单。” 1 · 归还失主
+				68 text 2 · 暂存店中
+				69 text 3 · 带回现实
+				70 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+			71 text 1
+			72 text 🤖
+			73 container
+				74 checkbox Description: 用户反馈: 赞同, Value: 0
+				75 pop up button (collapsed) Description: 用户反馈: 反对, ID: base-ui-_r_1e_, Secondary Actions: Expand
+				76 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+					77 image 工作流运行成功
+					78 text 交还收据
+				79 heading 午夜失物招领处, Value: 3
+					80 text 午夜失物招领处
+				81 text 夜幕降临，午夜失物招领处的灯光微弱而温暖。阿迟正坐在柜台后，手里玩弄着一只折好的纸鹤，嘴角挂着温柔的微笑。 “欢迎来到我的小店，今天你有什么想找的呢？”他抬起头，眼中闪烁着奇异的光芒。“不过，先得告诉我一个冷笑话，才能换取你想要的东西哦！” 他把手中的纸鹤轻轻放下，仿佛那是一个失踪的宝物，带着一丝古怪的期待。“上次我把倒着下雨的伞归还给失主，结果她说她觉得伞更适合做个花盆。哈哈，看来我得学着给伞换个职业了！”阿迟笑着，声音如同夜风般轻柔。 “你觉得呢？有没有什么想法？” 重新开局 · 开始下一夜
+				82 text 档案 · 查看旧账本
+				83 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+			84 container
+				85 text entry area (settable)
+				86 button (disabled) 发送
+		20 container Notifications
+
+The focused UI element is 85 text entry area (settable)

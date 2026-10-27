@@ -1,0 +1,28 @@
+[Unit]
+Description=Midnight Lost and Found PowerContext memory
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/srv/midnight/app
+EnvironmentFile=/etc/midnight-memory.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=midnight-memory
+StateDirectoryMode=0700
+ExecStart=/srv/midnight/venv/bin/python -m uvicorn service:create_app --factory --host 127.0.0.1 --port 8765 --workers 1
+Restart=on-failure
+RestartSec=5
+MemoryHigh=256M
+MemoryMax=384M
+CPUQuota=50%
+TasksMax=64
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/midnight-memory
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

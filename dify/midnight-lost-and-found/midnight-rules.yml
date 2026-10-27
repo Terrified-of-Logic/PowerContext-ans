@@ -1,0 +1,425 @@
+version: 0.4.0
+kind: app
+app:
+  name: 午夜失物招领处 · 规则试玩
+  mode: advanced-chat
+  icon: 🌙
+  icon_background: '#E4E4F1'
+  use_icon_as_answer_icon: true
+  description: 三次选择，一笔离奇交易。阿迟通过 PowerContext 记住每次来访。
+dependencies: []
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - id: 38a83a4b-358a-40e8-a50f-71942e92edb3
+    name: memory_url
+    value_type: string
+    value: http://host.docker.internal:8765
+    selector:
+    - env
+    - memory_url
+    description: 记忆服务地址
+  - id: 0b87b11b-681a-4f17-b31e-33aeaa73bc0f
+    name: memory_token
+    value_type: secret
+    value: ''
+    selector:
+    - env
+    - memory_token
+    description: 填入 MIDNIGHT_TOKEN
+  features:
+    opening_statement: 欢迎来到午夜失物招领处。输入‘开门’开始；离开后再来，阿迟也会记得你的收据。
+    suggested_questions:
+    - 开门
+    - 档案
+    suggested_questions_after_answer:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    file_upload:
+      enabled: false
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+  graph:
+    nodes:
+    - id: start
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: start
+        title: 推开店门
+        variables: []
+      position:
+        x: 0
+        y: 280
+      positionAbsolute:
+        x: 0
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: request
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: code
+        title: 关联玩家身份
+        code_language: python3
+        code: "import json\ndef main(player: str) -> dict:\n    return {\"body\":\
+          \ json.dumps({\"player\": player}, ensure_ascii=False)}"
+        variables:
+        - variable: player
+          value_selector:
+          - sys
+          - user_id
+          value_type: string
+        outputs:
+          body:
+            type: string
+            children: null
+      position:
+        x: 300
+        y: 280
+      positionAbsolute:
+        x: 300
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: recall
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: http-request
+        title: 读取 PowerContext 旧账本
+        method: post
+        url: '{{#env.memory_url#}}/recall'
+        authorization:
+          type: no-auth
+        headers: 'Content-Type:application/json
+
+          Authorization:Bearer {{#env.memory_token#}}'
+        params: ''
+        body:
+          type: json
+          data:
+          - type: text
+            key: ''
+            value: '{{#request.body#}}'
+        timeout:
+          connect: 10
+          read: 60
+          write: 20
+        ssl_verify: true
+        retry_config:
+          retry_enabled: true
+          max_retries: 2
+          retry_interval: 1000
+      position:
+        x: 600
+        y: 280
+      positionAbsolute:
+        x: 600
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: rules
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: code
+        title: 选择与因果规则
+        code_language: python3
+        code: "\"\"\"Pure game rules, embedded unchanged in the Dify Code node.\"\"\
+          \"\nimport copy\n\nITEMS = {\n    \"1\": (\"倒着下雨的伞\", \"伞里藏着失主没说出口的一句道歉\"\
+          ),\n    \"2\": (\"通往昨天的车票\", \"车票背面写着：不要阻止告别\"),\n    \"3\": (\"总慢半拍的影子\"\
+          , \"影子只是想有一次自己选方向\"),\n}\nPRICES = {\"1\": \"一个秘密\", \"2\": \"一分钟明天\", \"\
+          3\": \"一个冷笑话\"}\n\n\ndef fresh_state():\n    return {\"stage\": \"arrival\"\
+          , \"round\": 1, \"item\": \"\", \"price\": \"\", \"receipts\": []}\n\n\n\
+          def resolve(state, action):\n    \"\"\"Only explicit numbered choices change\
+          \ the ledger; free chat does not.\"\"\"\n    s = copy.deepcopy(state)\n\
+          \    action = action.strip()\n    changed = False\n    if action == \"重新开局\"\
+          :\n        s.update(stage=\"arrival\", round=s[\"round\"] + 1, item=\"\"\
+          , price=\"\")\n        changed = True\n    if action == \"档案\":\n      \
+          \  scene = \"旧账本翻开了。\" + (\"\\n\".join(s[\"receipts\"]) or \"还没有完成的交易。\"\
+          )\n    elif s[\"stage\"] == \"arrival\":\n        if action in ITEMS:\n\
+          \            s.update(stage=\"bargain\", item=ITEMS[action][0])\n      \
+          \      scene = \"你拿起了“%s”。%s。\" % ITEMS[action]\n            changed = True\n\
+          \        else:\n            scene = \"零点的钟只响了十一下。店主阿迟说：这里寄存的，都是现实放不下的东西。\"\
+          \n    elif s[\"stage\"] == \"bargain\":\n        if action in PRICES:\n\
+          \            s.update(stage=\"delivery\", price=PRICES[action])\n      \
+          \      scene = \"你以“%s”换取了“%s”的认领资格。阿迟盖章：代价已付，去向由你。\" % (s[\"price\"], s[\"\
+          item\"])\n            changed = True\n        else:\n            scene =\
+          \ \"阿迟敲了敲价目表：认领资格不能用钱买。请选择一种代价。\"\n    elif s[\"stage\"] == \"delivery\"\
+          :\n        endings = {\"1\": \"归还失主\", \"2\": \"暂存店中\", \"3\": \"带回现实\"\
+          }\n        if action in endings:\n            receipt = \"第%d夜：%s；代价：%s；去向：%s。\"\
+          \ % (s[\"round\"], s[\"item\"], s[\"price\"], endings[action])\n       \
+          \     s[\"receipts\"] = (s[\"receipts\"] + [receipt])[-12:]\n          \
+          \  s[\"stage\"] = \"ended\"\n            scene = receipt + \"阿迟把收据折成纸鹤：下次见，我会记得。\"\
+          \n            changed = True\n        else:\n            scene = \"门外有人敲门，声音像那件失物。你还有最后一个决定。\"\
+          \n    else:\n        scene = \"阿迟认出了你，摊开上次的收据：\" + s[\"receipts\"][-1] +\
+          \ \"输入“重新开局”，再收一件失物。\"\n    choices = {\n        \"arrival\": \"1 · 倒着下雨的伞\\\
+          n2 · 通往昨天的车票\\n3 · 总慢半拍的影子\",\n        \"bargain\": \"1 · 一个秘密\\n2 · 一分钟明天\\\
+          n3 · 一个冷笑话\",\n        \"delivery\": \"1 · 归还失主\\n2 · 暂存店中\\n3 · 带回现实\"\
+          ,\n        \"ended\": \"重新开局 · 开始下一夜\\n档案 · 查看旧账本\",\n    }[s[\"stage\"\
+          ]]\n    memory = \"\\n\".join(s[\"receipts\"][-3:]) or \"第一次来访，没有历史交易。\"\
+          \n    return {\"state\": s, \"changed\": changed, \"scene\": scene, \"choices\"\
+          : choices, \"memory\": memory}\n\nimport json\n\ndef main(body: str, status:\
+          \ int, player: str, action: str) -> dict:\n    if status != 200:\n     \
+          \   raise ValueError(\"记忆服务读取失败，请检查服务地址与密钥。\")\n    previous = json.loads(body)\n\
+          \    result = resolve(previous[\"state\"], action)\n    payload = {\"player\"\
+          : player, \"revision\": previous[\"revision\"],\n               \"action\"\
+          : action, \"state\": result[\"state\"]}\n    prompt = json.dumps({\"本轮已确定的事件\"\
+          : result[\"scene\"], \"历史收据\": result[\"memory\"],\n                   \
+          \      \"玩家说\": action, \"当前状态\": result[\"state\"][\"stage\"]}, ensure_ascii=False)\n\
+          \    return {\"commit_body\": json.dumps(payload, ensure_ascii=False), \"\
+          prompt\": prompt,\n            \"scene\": result[\"scene\"], \"choices\"\
+          : result[\"choices\"]}\n"
+        variables:
+        - variable: body
+          value_selector:
+          - recall
+          - body
+          value_type: string
+        - variable: status
+          value_selector:
+          - recall
+          - status_code
+          value_type: string
+        - variable: player
+          value_selector:
+          - sys
+          - user_id
+          value_type: string
+        - variable: action
+          value_selector:
+          - sys
+          - query
+          value_type: string
+        outputs:
+          commit_body:
+            type: string
+            children: null
+          prompt:
+            type: string
+            children: null
+          scene:
+            type: string
+            children: null
+          choices:
+            type: string
+            children: null
+      position:
+        x: 900
+        y: 280
+      positionAbsolute:
+        x: 900
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: commit
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: http-request
+        title: 将选择写入 PowerContext
+        method: post
+        url: '{{#env.memory_url#}}/commit'
+        authorization:
+          type: no-auth
+        headers: 'Content-Type:application/json
+
+          Authorization:Bearer {{#env.memory_token#}}'
+        params: ''
+        body:
+          type: json
+          data:
+          - type: text
+            key: ''
+            value: '{{#rules.commit_body#}}'
+        timeout:
+          connect: 10
+          read: 60
+          write: 20
+        ssl_verify: true
+        retry_config:
+          retry_enabled: true
+          max_retries: 2
+          retry_interval: 1000
+      position:
+        x: 1500
+        y: 280
+      positionAbsolute:
+        x: 1500
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: render
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: code
+        title: 确认保存并展示
+        code_language: python3
+        code: "import json\ndef main(body: str, status: int, scene: str, choices:\
+          \ str, narrative: str) -> dict:\n    if status != 200 or not json.loads(body).get(\"\
+          saved\"):\n        raise ValueError(\"本轮未保存，请重试；若同时打开多个窗口，请只保留一个。\")\n \
+          \   story = narrative.strip() or scene\n    return {\"answer\": \"### 午夜失物招领处\\\
+          n\\n\" + story + \"\\n\\n\" + choices +\n            \"\\n\\n---\\n输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。\"\
+          }\n"
+        variables:
+        - variable: body
+          value_selector:
+          - commit
+          - body
+          value_type: string
+        - variable: status
+          value_selector:
+          - commit
+          - status_code
+          value_type: string
+        - variable: scene
+          value_selector:
+          - rules
+          - scene
+          value_type: string
+        - variable: choices
+          value_selector:
+          - rules
+          - choices
+          value_type: string
+        - variable: narrative
+          value_selector:
+          - rules
+          - scene
+          value_type: string
+        outputs:
+          answer:
+            type: string
+            children: null
+      position:
+        x: 1800
+        y: 280
+      positionAbsolute:
+        x: 1800
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    - id: answer
+      type: custom
+      data:
+        desc: ''
+        selected: false
+        type: answer
+        title: 交还收据
+        answer: '{{#render.answer#}}'
+        variables: []
+      position:
+        x: 2100
+        y: 280
+      positionAbsolute:
+        x: 2100
+        y: 280
+      width: 244
+      height: 98
+      sourcePosition: right
+      targetPosition: left
+    edges:
+    - id: start-request
+      source: start
+      target: request
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: start
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: request-recall
+      source: request
+      target: recall
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: code
+        targetType: http-request
+        isInIteration: false
+        isInLoop: false
+    - id: recall-rules
+      source: recall
+      target: rules
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: http-request
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: rules-commit
+      source: rules
+      target: commit
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: code
+        targetType: http-request
+        isInIteration: false
+        isInLoop: false
+    - id: commit-render
+      source: commit
+      target: render
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: http-request
+        targetType: code
+        isInIteration: false
+        isInLoop: false
+    - id: render-answer
+      source: render
+      target: answer
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      data:
+        sourceType: code
+        targetType: answer
+        isInIteration: false
+        isInLoop: false
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

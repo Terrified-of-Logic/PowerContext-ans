@@ -1,0 +1,191 @@
+Browser tab: 493816647, Title: "编排 · 午夜失物招领处 · 规则试玩 - Dify", URL: "https://cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/workflow".
+0 AXWebArea 编排 · 午夜失物招领处 · 规则试玩 - Dify, URL: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/workflow
+	1 container
+		44 link Description: 跳转到主要内容, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/workflow#main-content
+		45 link Description: 主页, Value: cloud.dify.ai/
+		46 text /
+		47 link Description: 工作室, Value: cloud.dify.ai/apps
+		48 pop up button (collapsed) Description: 搜索任何内容, ID: base-ui-_r_3kc_, Secondary Actions: Expand
+		49 button Description: 收起侧边栏, ID: base-ui-_r_3kf_
+		50 text 🌙
+		51 text 午夜失物招领处 · 规则试玩
+		52 pop up button (collapsed) Description: 午夜失物招领处 · 规则试玩 的更多操作, ID: base-ui-_r_3ku_, Secondary Actions: Expand
+		53 text CHATFLOW
+		54 container
+			55 link Description: 编排, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/workflow
+			56 link Description: 访问点, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/access-point
+			57 link Description: 日志, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/logs
+			58 link Description: 标注, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/annotations
+			59 link Description: 监测, Value: cloud.dify.ai/app/e65e8093-045b-42c0-b090-6fac01969b21/overview
+		60 pop up button (collapsed) Xu Chengmin 账户, Help: Xu Chengmin, ID: base-ui-_r_3kj_, Secondary Actions: Expand
+			61 text Xu Chengmin
+			62 text 账户
+		63 pop up button (collapsed) Description: 打开帮助菜单, ID: base-ui-_r_3ko_, Secondary Actions: Expand
+		64 container workflow-container
+			65 container
+				66 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3l5_, Secondary Actions: Expand
+				67 button Description: 添加注释, ID: base-ui-_r_3l8_
+				68 checkbox Description: 指针模式, Value: 1, ID: base-ui-_r_3la_
+				69 checkbox Description: 手模式, Value: 0, ID: base-ui-_r_3ld_
+				70 button Description: 整理节点, ID: base-ui-_r_3lg_
+				71 pop up button (collapsed) Description: 更多操作, ID: base-ui-_r_3ll_, Secondary Actions: Expand
+			72 container
+				73 button Description: 撤销, ID: base-ui-_r_3lp_
+				74 button (disabled) Description: 重做, ID: base-ui-_r_3lr_
+				75 pop up button (collapsed) Description: 变更历史, ID: base-ui-_r_3lu_, Secondary Actions: Expand
+				497 text 查看缓存 清除
+				77 image React Flow mini map
+				78 button Description: 缩小, ID: base-ui-_r_3m1_
+				79 pop up button (collapsed) 55%, ID: base-ui-_r_3m5_, Secondary Actions: Expand
+				80 button Description: 放大, ID: base-ui-_r_3m8_
+			81 container
+				82 container 工作流保存状态
+					83 text 自动保存
+					84 text 22:50:07
+					85 text 未发布
+				87 button 预览
+				88 pop up button (collapsed) Description: 查看运行历史, ID: base-ui-_r_3me_, Secondary Actions: Expand
+				89 pop up button (collapsed) Description: 检查清单, ID: base-ui-_r_3mg_, Secondary Actions: Expand
+				90 button (collapsed) Description: 会话变量, Secondary Actions: Expand
+				91 button (collapsed) Description: 环境变量, Secondary Actions: Expand
+				92 button (collapsed) Description: 系统变量, Secondary Actions: Expand
+				93 button 功能
+				94 pop up button (collapsed) 发布, ID: base-ui-_r_3mi_, Secondary Actions: Expand
+				95 button Description: 版本历史, ID: base-ui-_r_3mk_
+			443 container
+				444 splitter Description: 预览, Value: 400
+				445 text 预览
+				446 button Description: 重新开始, ID: base-ui-_r_496_
+				447 button 关闭
+				448 container
+					449 container
+						450 text 欢迎来到午夜失物招领处。输入‘开门’开始；离开后再来，阿迟也会记得你的收据。
+						451 button 开门
+						452 button 档案
+					462 text 开门
+					463 container
+						464 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+							465 image 工作流运行成功
+							466 text 交还收据
+						467 heading 午夜失物招领处, Value: 3
+							468 text 午夜失物招领处
+						469 text 午夜的钟声在空荡荡的街道上回响，零点的钟只响了十一下，像是故意在和时间开玩笑。阿迟微微一笑，推开了那扇古老的木门，温柔地说：“欢迎来到失物招领处，这里寄存的，都是现实放不下的东西。” 店内昏黄的灯光洒在各式各样的物品上，墙角有一只发着微光的怀表，旁边是一把生锈的钥匙。“你知道吗？我曾经遇见过一个人，他把时间都丢了，结果每天都在追赶。”阿迟故作神秘，眼中闪烁着古怪的光芒。 “你有什么想要寄存的，或者寻找的东西吗？”他问道，期待着你的回应。 1 · 倒着下雨的伞
+						470 text 2 · 通往昨天的车票
+						471 text 3 · 总慢半拍的影子
+						472 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+					474 text 1
+					475 container
+						476 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+							477 image 工作流运行成功
+							478 text 交还收据
+						479 heading 午夜失物招领处, Value: 3
+							480 text 午夜失物招领处
+						481 text “欢迎光临午夜失物招领处，我是阿迟。”我微笑着，手中摇晃着那把“倒着下雨的伞”。“只要一打开，雨水就会从伞里倒流出来，真是个奇妙的发明，对吧？” 我将伞轻轻放在桌上，眼神中透露出一丝神秘。“这把伞里藏着失主没说出口的一句道歉。你知道，很多时候，言语的重量比雨水还要沉重。” 我眨了眨眼，试图让气氛轻松些。“你觉得，如果失主用这把伞走在雨中，会不会把他的道歉也带走呢？” “不过，既然你来了，想不想试试这个倒着下雨的感觉？或者，你有别的想法呢？” 1 · 一个秘密
+						482 text 2 · 一分钟明天
+						483 text 3 · 一个冷笑话
+						484 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+					486 text 3
+					487 container
+						488 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+							489 image 工作流运行成功
+							490 text 交还收据
+						491 heading 午夜失物招领处, Value: 3
+							492 text 午夜失物招领处
+						493 text 夜色渐深，午夜失物招领处的灯光微弱而温暖。阿迟站在柜台后，微笑着看向你：“欢迎回来！上次你用一个冷笑话换取了倒着下雨的伞，真是个有趣的选择。听说那把伞有一种特殊的魅力，能让雨水反向流动，仿佛在和天斗气。” 他轻轻摇了摇头，继续说道：“不过小心，使用时可别被路人当成异类哦！你准备好把它带走了吗，还是还有其他需要交代的事？”阿迟的眼神中闪烁着期待，似乎在等待你下一步的决定。 1 · 归还失主
+						494 text 2 · 暂存店中
+						495 text 3 · 带回现实
+						496 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+					498 text 1
+					499 container
+						500 button (collapsed) 工作流运行成功 交还收据, Secondary Actions: Expand
+							501 image 工作流运行成功
+							502 text 交还收据
+						503 heading 午夜失物招领处, Value: 3
+							504 text 午夜失物招领处
+						505 text 在午夜失物招领处，阿迟坐在柜台后，灯光微弱，给整个空间披上一层神秘的面纱。他微笑着，手里把一张皱皱的收据折成了一只栩栩如生的纸鹤。 “你知道吗，纸鹤是不会飞的，因为它只会折叠得很美。”阿迟轻声说道，眼中闪烁着调皮的光芒。 “不过我今天的收获还不错，倒着下雨的伞又回到了失主手中。真是个奇妙的世界，对吧？” 他轻轻抚摸着那只纸鹤，仿佛在诉说着不为人知的秘密。“下次见，我会记得你带来的冷笑话，期待你的再访。”他笑着向你挥手，似乎在期待着更多奇妙的故事。 重新开局 · 开始下一夜
+						506 text 档案 · 查看旧账本
+						507 text 输入编号作决定；输入‘档案’翻账本，‘重新开局’开始下一夜。
+					453 container
+						454 container
+							455 text entry area (settable)
+							456 button (disabled) 发送
+						457 text 功能已开启
+						458 button 管理
+							459 text 管理
+							460 image
+			149 container
+				150 container
+					151 image
+						152 button Edge from start to request
+						153 button Edge from request to recall
+						154 button Edge from recall to rules
+						155 button Edge from commit to render
+						156 button Edge from render to answer
+						157 button Edge from rules to 1793025741499
+						158 button Edge from 1793025741499 to commit
+					159 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3ob_, Secondary Actions: Expand
+					160 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3od_, Secondary Actions: Expand
+					161 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3of_, Secondary Actions: Expand
+					162 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3oj_, Secondary Actions: Expand
+					163 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3ol_, Secondary Actions: Expand
+					164 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3sb_, Secondary Actions: Expand
+					165 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_3sd_, Secondary Actions: Expand
+					166 button 开始 添加节点 推开店门
+						167 text 开始
+						168 container
+							508 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4ff_, Secondary Actions: Expand
+							170 button 推开店门
+								171 text 推开店门
+					172 button 添加节点 关联玩家身份
+						173 container
+							509 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fh_, Secondary Actions: Expand
+							175 button 关联玩家身份
+								176 text 关联玩家身份
+					177 button 添加节点 读取 PowerContext 旧账本 POST memory_url /recall 失败时重试 2 次
+						178 container
+							510 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fj_, Secondary Actions: Expand
+							180 button 读取 PowerContext 旧账本
+								181 text 读取 POWERCONTEXT 旧账本
+							182 text POST
+							183 text memory_url
+							184 text /recall 失败时重试 2 次
+					185 button 添加节点 选择与因果规则
+						186 container
+							511 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fl_, Secondary Actions: Expand
+							188 button 选择与因果规则
+								189 text 选择与因果规则
+					190 button 添加节点 将选择写入 PowerContext POST memory_url /commit 失败时重试 2 次
+						191 container
+							512 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fn_, Secondary Actions: Expand
+							193 button 将选择写入 PowerContext
+								194 text 将选择写入 POWERCONTEXT
+							195 text POST
+							196 text memory_url
+							197 text /commit 失败时重试 2 次
+					198 button 添加节点 确认保存并展示
+						199 container
+							513 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fp_, Secondary Actions: Expand
+							201 button 确认保存并展示
+								202 text 确认保存并展示
+					203 button 添加节点 交还收据 回复 确认保存并展示 / answer
+						204 container
+							514 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4fr_, Secondary Actions: Expand
+							206 button 交还收据
+								207 text 交还收据
+							208 text 回复
+							209 container
+								210 text 确认保存并展示 / answer
+					211 button 添加节点 阿迟讲述这一夜 模型设置
+						212 container
+							515 pop up button (collapsed) Description: 添加节点, ID: base-ui-_r_4ft_, Secondary Actions: Expand
+							215 button 阿迟讲述这一夜
+								216 text 阿迟讲述这一夜
+							346 pop up button (disabled, collapsed) Description: 模型设置, ID: base-ui-_r_3sv_, Secondary Actions: Expand
+								347 text gpt-4o-mini
+								348 text CHAT
+				217 image
+				218 link Description: React Flow attribution, Value: reactflow.dev/
+		219 text 编排 · 应用详情 - Dify
+		43 container Notifications
+
+The focused UI element is 455 text entry area (settable)

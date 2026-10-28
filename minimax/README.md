@@ -23,10 +23,10 @@ AI 开发助手改代码时，需要知道三件事：**当前应遵守什么要
 
 | 组件 | 版本 | 说明 |
 |---|---|---|
-| Node.js | ≥ 22 | `@oceanbase/seekdb-node` 要求 |
-| `@oceanbase/seekdb-node` | 1.4.x | seekdb 嵌入式实例，自带各平台原生包 |
+| **Node.js** | **≥ 22** | `@oceanbase/seekdb-node` 要求 `node>=22`，请先 `node -v` 确认 |
+| `@oceanbase/seekdb-node` | 1.4.x | seekdb 嵌入式实例，自带各平台原生包，`npm install` 自动装 |
 | `mysql2` | 3.x | 连接 seekdb |
-| PowerContext | 1.4.1 | 独立服务，需先启动 |
+| **PowerContext** | **1.4.1** | 独立服务，需先安装并启动（见下） |
 | MiniMax API | `MiniMax-Text-01` | 需要 API Key |
 
 ## 四、配置步骤
@@ -34,18 +34,36 @@ AI 开发助手改代码时，需要知道三件事：**当前应遵守什么要
 ### 1. 安装依赖
 
 ```bash
+cd minimax
 npm install
 ```
 
-### 2. 启动 PowerContext
+> 若 `@oceanbase/seekdb-node` 的原生包未随 `npm install` 装好，可加 `--include=optional` 重装。
+
+### 2. 安装并启动 PowerContext
 
 ```bash
+# 安装 CLI（只需一次）
+pip install uv
+uv tool install --force "powercontext[cli,server]==1.4.1"
+
+# 生成配置（免模型模板，不需要推理 API）
 powercontext config init --template -o ../powercontext/.env
+
+# 启动服务，监听 http://127.0.0.1:8000
 powercontext server run --env-file ../powercontext/.env
 ```
 
-启动成功后监听 `http://127.0.0.1:8000`。
-PowerContext 使用 SQLite 落盘，不需要配置推理模型。
+说明：
+
+- 若 `powercontext` 命令不在 PATH，可用 `uv tool run powercontext ...`，或在
+  `~/.local/bin/`（Windows 为 `%USERPROFILE%\.local\bin\`）下找到可执行文件直接用
+- 配置使用 SQLite 落盘，不需要额外数据库
+- **未配置推理模型**，只使用显式记忆写入，不需要任何模型 Key
+- 服务启动后出现 `PowerContext Server is ready` 即成功
+
+> 若 PowerContext 未启动，上下文模块与 Agent 仍可运行，只是「任务当前状态」一节会显示不可用提示。
+> 但**验收项「状态能够复用」需要它处于运行状态**。
 
 ### 3. 设置 MiniMax 凭据
 
@@ -60,6 +78,8 @@ export MINIMAX_API_KEY="你的 Key"
 可选：`MINIMAX_MODEL`（默认 `MiniMax-Text-01`）、`MINIMAX_BASE_URL`（默认 `https://api.minimaxi.com/v1`）。
 
 ## 五、调用入口
+
+**以下命令都可以从任意目录执行**（脚本按自身位置定位工程，不依赖 `cd`）。
 
 ```bash
 # 1) 把工程资料索引进 seekdb
@@ -112,7 +132,11 @@ minimax/
 │   ├── run.mjs              完整流程驱动
 │   ├── minimax.mjs          MiniMax 调用封装
 │   └── runs/                每次运行的过程记录
-└── docs/                    验证样例与技术说明
+└── docs/                    交付文档
+    ├── 验证样例.md           任务描述、有效规格、操作步骤、预期结果、重置方法
+    ├── 代码与测试.md         修改前后快照、代码差异、新增功能测试、回归测试、运行日志
+    ├── 技术使用记录.md       MiniMax 开发记录、seekdb 查询记录、PowerContext 记录
+    └── 技术说明.md           模块结构、上下文选择方式、各项技术分工
 ```
 
 ## 八、已知限制

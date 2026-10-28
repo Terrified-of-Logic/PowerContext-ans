@@ -13,12 +13,15 @@
  *   node context/cli.mjs stats                   看库里有多少条目
  */
 import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { collect } from './ingest.mjs';
 import { buildContext, renderMarkdown } from './retrieve.mjs';
 import * as pc from './powercontext.mjs';
 
-const BUSINESS = process.env.BUSINESS_DIR || resolve(process.cwd(), 'business');
+// 以脚本自身位置定位业务工程，允许从任意目录调用
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const BUSINESS = process.env.BUSINESS_DIR || resolve(HERE, '..', 'business');
 
 function parseArgs(argv) {
   const out = { _: [] };

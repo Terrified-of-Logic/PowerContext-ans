@@ -15,5 +15,8 @@
   "dependencies": {
     "@oceanbase/seekdb-node": "^1.4.0",
     "mysql2": "^3.24.6"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

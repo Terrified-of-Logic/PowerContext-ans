@@ -10,12 +10,16 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, copyFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { collect } from '../context/ingest.mjs';
 import { buildContext, renderMarkdown } from '../context/retrieve.mjs';
 import { chat, extractCode, hasKey } from './minimax.mjs';
 import * as pc from '../context/powercontext.mjs';
 
-const ROOT = resolve(process.cwd());
+// 以脚本自身位置定位工程根目录，而不是 process.cwd()，
+// 这样从任何目录调用都能正确找到业务工程
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ROOT = resolve(HERE, '..');
 const BUSINESS = join(ROOT, 'business');
 const TARGET = join(BUSINESS, 'src', 'orders.js');
 const TESTFILE = join(BUSINESS, 'test', 'orders.test.js');
@@ -32,7 +36,12 @@ const dryRun = Boolean(args['dry-run']);
 
 function run(cmd, argv) {
   try {
-    const out = execFileSync(cmd, argv, { cwd: BUSINESS, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const out = execFileSync(cmd, argv, {
+      cwd: BUSINESS,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 60000,   // 防止测试卡住把整条流程挂死
+    });
     return { ok: true, out };
   } catch (e) {
     return { ok: false, out: `${e.stdout || ''}${e.stderr || ''}` };
@@ -52,10 +61,17 @@ const rows = collect(BUSINESS);
 const ctx = buildContext(rows, task);
 const contextMd = renderMarkdown(ctx);
 
-// 顺带写进 seekdb，证明数据库真的参与（如果可用）
+// 顺带写进 seekdb，证明数据库真的参与。
+// 加超时保护：seekdb 起不来时不能让整个流程挂死。
 try {
   const { open, insertAll, reset, count, close } = await import('../context/store.mjs');
-  await open(join(ROOT, 'context', 'data'));
+  const withTimeout = (p, ms, label) =>
+    Promise.race([
+      p,
+      new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} 超时（${ms}ms）`)), ms)),
+    ]);
+
+  await withTimeout(open(join(ROOT, 'context', 'data')), 30000, 'seekdb 启动');
   await reset();
   const n = await insertAll(rows);
   const total = await count();
@@ -64,6 +80,7 @@ try {
   ctx.dbItems = total;
 } catch (e) {
   console.log('\n[seekdb] 跳过写入：', e.message);
+  console.log('         （不影响上下文与代码修改流程；数据库参与可用 `node context/cli.mjs ingest` 单独验证）');
 }
 
 writeFileSync(join(runDir, 'context.md'), contextMd, 'utf8');

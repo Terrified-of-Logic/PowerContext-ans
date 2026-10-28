@@ -120,15 +120,25 @@ if (cmd === 'context') {
 }
 
 if (cmd === 'status') {
-  if (args.set) {
-    const r = await pc.remember(String(args.set));
-    console.log('已保存：', JSON.stringify(r).slice(0, 200));
-  } else {
-    const entries = await pc.listAll(50);
-    console.log(`共 ${entries.length} 条任务记录：`);
-    for (const e of entries) console.log(`  [${e.kind}/${e.state}] ${e.artifact_id}  ${e.text}`);
-    const s = pc.summarize(entries);
-    console.log('\n已完成：', s.done.length, '| 待办：', s.todo.length, '| 已验证：', s.verified.length);
+  try {
+    if (args.set) {
+      const r = await pc.remember(String(args.set));
+      console.log('已保存：', JSON.stringify(r).slice(0, 200));
+    } else {
+      const entries = await pc.listAll(50);
+      console.log(`共 ${entries.length} 条任务记录：`);
+      for (const e of entries) console.log(`  [${e.kind}/${e.state}] ${e.artifact_id}  ${e.text}`);
+      const s = pc.summarize(entries);
+      console.log('\n已完成：', s.done.length, '| 待办：', s.todo.length, '| 已验证：', s.verified.length);
+    }
+  } catch (e) {
+    console.error(`\n无法连接 PowerContext（${pc.BASE || 'http://127.0.0.1:8000'}）：${e.message}\n`);
+    console.error('请先启动服务：');
+    console.error('  npm run setup');
+    console.error('或手动：');
+    console.error('  powercontext server run --env-file ../powercontext/.env');
+    console.error('\n说明：PowerContext 保存任务进展与验证结果，是本题必做项之一，需要它处于运行状态。');
+    process.exit(2);
   }
   process.exit(0);
 }

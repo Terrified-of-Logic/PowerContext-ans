@@ -5,13 +5,14 @@
   "type": "module",
   "description": "规有所依：面向软件持续演进的 SDD 上下文管理系统",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "verify": "node scripts/verify.mjs",
     "ingest": "node context/cli.mjs ingest",
     "context": "node context/cli.mjs context --task",
     "stats": "node context/cli.mjs stats",
     "status": "node context/cli.mjs status",
     "test:business": "node business/test/orders.test.js",
-    "agent": "node agent/run.mjs",
-    "verify": "node scripts/verify.mjs"
+    "agent": "node agent/run.mjs"
   },
   "dependencies": {
     "@oceanbase/seekdb-node": "^1.4.0",

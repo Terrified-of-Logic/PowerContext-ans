@@ -1,173 +1,183 @@
 # 技术说明：端侧向量化 + seekdb 混合检索
 
-> 一页纸版本。实测数据来自本机（Windows 11 / 128 线程 CPU / Chromium 内核），非理论估值。
+> 一页纸版本。文中数据均来自提交代码的实际运行（Windows 11 / Chrome 155 / Intel iGPU 与 seekdb `5.7.25-OceanBase seekdb-v1.4.0.0`），
+> 原始数据与复现脚本见 [`eval/`](./eval/)：`eval/out/quality.json`、`eval/out/backend-browser.json`、`eval/out/e2e-api.json`。
 
 ## 一、要解决的问题
 
-做一个迷你知识库：上传几份 Markdown / 文本，用自然语言提问，直接找回最相关的段落。
-两条硬约束决定了整个架构：
+做一个迷你知识库：上传 `.md` / `.txt`，用自然语言提问，直接找回最相关的段落。两条硬约束决定架构：
 
-1. **向量化必须在浏览器本地完成**（数据不出本地，断网可用）
-2. **检索必须由 seekdb 执行**（不是自己写个数组算余弦）
+1. **向量化必须在浏览器本地完成**（数据不出本地，断网可用），且优先用 WebGPU、不支持时自动降级 WASM 并明确提示；
+2. **存储与混合检索必须由 seekdb 完成**（不能客户端分别取两路结果再自行拼合）。
 
 ## 二、架构
 
 ```
-浏览器                                    本地 Node 进程
-┌──────────────────────────┐              ┌─────────────────────────┐
-│ UI（原生 JS + Vite）      │              │ Express                 │
-│  ├ 文件读取 / 分块        │   HTTP/JSON  │  ├ POST /api/ingest     │
-│  ├ Web Worker            │ ───────────► │  └ POST /api/search     │
-│  │   └ Transformers.js   │              │        │                │
-│  │      ONNX Runtime Web │              │        ▼                │
-│  └ 结果渲染 / 高亮        │ ◄─────────── │  seekdb（嵌入式，进程内）│
-└──────────────────────────┘              └─────────────────────────┘
+浏览器                                        本地 Node 进程
+┌──────────────────────────────┐             ┌──────────────────────────────┐
+│ UI（原生 JS + Vite）          │             │ Express                      │
+│  ├ 文件读取 / 分块             │  HTTP/JSON  │  ├ POST /api/ingest           │
+│  ├ Web Worker                │ ──────────► │  ├ POST /api/search           │
+│  │   ├ WebGPU + FP16（优先）  │             │  └ GET  /api/health /api/stats│
+│  │   └ WASM + INT8（自动降级）│             │         │                    │
+│  └ 结果渲染 / 高亮             │ ◄────────── │         ▼                    │
+└──────────────────────────────┘             │ seekdb（嵌入式，进程内）       │
+                                             │  VECTOR(512) + HNSW          │
+                                             │  FULLTEXT(ngram)             │
+                                             └──────────────────────────────┘
 ```
 
 三处关键取舍：
 
 | 决策 | 选择 | 理由 |
 |---|---|---|
-| 向量化放哪 | 浏览器 Worker | 题面要求端侧；Worker 避免阻塞主线程 |
+| 向量化放哪 | 浏览器 Web Worker | 题面要求端侧；Worker 避免阻塞主线程；不同推理后端在 Worker 内自动选择 |
 | seekdb 怎么部署 | 嵌入式（进程内） | 评委 `npm install && npm start` 即可跑，无需 Docker、无需单独服务 |
-| 前端框架 | 原生 JS | 页面只有上传、检索、列表三块，引入框架只会增加构建负担 |
+| 混合检索怎么实现 | **单条 SQL 内完成两路检索 + RRF 融合** | 题面要求"检索处理由 seekdb 完成，不得客户端拼合"；见 §四 |
 
-## 三、端侧向量化的四次优化
+## 三、端侧推理：模型、量化与后端选择
 
-这是本题「端侧 AI 推理性能优化」的主要工作量。
+### 3.1 模型来源与版本
 
-### 1. 模型选型与量化
+- 模型：**`onnx-community/bge-small-zh-v1.5-ONNX`**（`BAAI/bge-small-zh-v1.5` 的 ONNX 转换，512 维，中文语料训练，CLS 池化）。
+- 权重来源：**魔搭社区**（ModelScope）镜像，运行时地址 `https://modelscope.cn/models/onnx-community/bge-small-zh-v1.5-ONNX/resolve/master/`；
+  本次实测使用的仓库快照 revision = `5b414c2c2d177d066e7bdc32b6ad2a4518a59333`（2026-10-17 上传）。
+- 运行时：`@huggingface/transformers@4.3.2`（ONNX Runtime Web），模型权重走浏览器 Cache Storage 缓存。
 
-选 `bge-small-zh-v1.5`（512 维），中文语料训练，对中文知识库的语义召回明显优于英文模型。
-再量化到 **q8（8 位整数）**：权重体积约为 fp32 的四分之一，精度损失对嵌入任务可忽略。
+### 3.2 量化方案与体积
 
-### 2. 放进 Web Worker
+模型仓库同时提供 FP32 / FP16 / INT8 三套 ONNX 权重，本应用按后端选择：
 
-推理是 CPU 密集的同步计算。放进主线程会导致输入框卡顿、进度条不刷新。
-放进 Worker 后，界面全程可交互，主线程只负责收发消息。
+| 精度 | 使用的文件 | 权重大小（onnx 文件合计） | 相对 FP32 压缩比 |
+|---|---|---:|---:|
+| FP32（基线） | `onnx/model.onnx` + `model.onnx_data` | **90.42 MB** | 1.00× |
+| FP16（WebGPU 路径） | `onnx/model_fp16.onnx` + `model_fp16.onnx_data` | **45.23 MB** | **2.00×** |
+| INT8 / q8（WASM 路径） | `onnx/model_quantized.onnx` + `model_quantized.onnx_data` | **22.83 MB** | **3.96×** |
 
-### 3. 推理后端的选择
+（另有 tokenizer.json 0.35 MB；INT8 为 onnx-community 官方 q8 量化权重，本应用不重复量化，仅按后端选文件。）
 
-Transformers.js 在浏览器里跑 ONNX 时，底层有三种可选后端：
+### 3.3 量化前后检索质量
 
-| 后端 | 优势 | 代价 |
-|---|---|---|
-| **WebAssembly（选用）** | 算子覆盖完整，行为稳定，无需任何权限 | 只用 CPU，多线程需要跨源隔离头 |
-| WebGPU | 理论吞吐更高，适合大模型 | 部分算子会 fallback 到 WASM，首次编译有额外延迟；设备间差异大 |
-| WebGL | —— | 已被上游逐步淘汰，不再考虑 |
+同管线（Node + onnxruntime，同 CLS 池化 / 查询指令前缀 / 分块规则）对 **demo-doc.md 的 13 个文本块**做 8 条查询的检索质量对比
+（Recall@K / MRR 均由检索排名直接计算，数据见 `eval/out/quality.json`）：
 
-选 **WASM** 的理由是三点：q8 量化模型的算子在 WASM 上覆盖完整；不依赖 GPU 驱动与浏览器版本；不需要 COOP/COEP 跨源隔离头（多线程才需要，但会增加部署复杂度）。
+| 精度 | Recall@1 | Recall@3 | MRR | 单条向量化延迟（Node/CPU，中位） |
+|---|---:|---:|---:|---:|
+| FP32 基线 | 0.750 | 0.875 | 0.844 | 3.9 ms |
+| FP16 | 0.750 | 0.875 | 0.844 | 3.8 ms |
+| **INT8 (q8)** | **0.750** | **1.000** | **0.854** | **3.2 ms** |
 
-代价是拿不到 GPU 加速。对本场景（512 维、短文本、单条查询）实测量级是 **12–14 ms/条**，
-已经完全落在交互式响应范围内，继续追 GPU 的收益不足以抵消稳定性风险。
+→ 量化后检索质量没有下降（小样本上 INT8 的 Recall@3/MRR 还略高），推理延迟下降。样本量说明：这是 13 块 × 8 查询的演示级评测，
+结论用于"量化不明显掉质量"的验收目的，不宣称大规模语料上的绝对水平。
 
-> 未在 WebGPU 上做实测对比，因此不给倍数结论。若后续换更大的模型，
-> 值得重新评估：把 `device: 'webgpu'` 打开做一次基准，再用数据决定。
+### 3.4 推理后端：WebGPU 优先 + WASM 自动降级
 
-### 4. 预热（最关键的一步）
+`src/embed.worker.js` 里的选择逻辑：
 
-**第一次推理会把 ONNX 会话初始化的开销也算进去**，实测首次查询耗时：
+1. 检测 `navigator.gpu`；存在则显式用 `device: 'webgpu'` + `dtype: 'fp16'` 创建推理管线（题面要求的"优先使用 WebGPU，显式配置对应推理后端"）；
+2. WebGPU 初始化/运行失败（驱动、算子不支持等）→ 捕获异常 → 自动降级 `device: 'wasm'` + `dtype: 'q8'`，核心流程不受影响；
+3. 当前后端与降级原因回传主线程，页面顶部徽标明确提示：`推理后端：WebGPU · FP16` 或
+   `推理后端：WASM · INT8（WebGPU 初始化失败：…）`；
+4. 为便于验收两条路径，支持 `?device=wasm` / `?device=webgpu` 强制指定（对应"验证降级路径"要求）。
 
-```
-优化前：15055 ms
-优化后：   12 ms
-```
+两条路径均在真实 Chrome（Windows 11 / Chrome 155 / Intel gen-12lp iGPU，支持 WebGPU）中跑通：
+默认打开 → `WebGPU · FP16`；`?device=wasm` → `WASM · INT8（按测试参数强制 WASM（用于验证降级路径））`，界面徽标与状态条正确提示。
 
-原因是 `pipeline()` 返回后，真正的推理会话要到第一次 `embed` 时才建立。
-优化办法是加载完成后立刻跑一次「预热」推理，把这段开销从用户可感知的查询路径挪到加载阶段。
+### 3.5 实测性能（同一台机器、同一语料）
 
-**这一项就是 1250 倍的差距**，也是本题性能优化里收益最大的一处。
+**端侧推理微基准**（Chrome 155，浏览器内，模型已缓存；`eval/out/backend-browser.json`）：
 
-### 5. 分块策略（实测比池化方式影响更大）
+| 配置 | 模型体积 | 单条查询向量化（中位 / 最小） | 16 条批量向量化（中位） | 每条约 |
+|---|---:|---:|---:|---:|
+| FP32 + WASM（基线） | 90.42 MB | 57.3 / 35.4 ms | 2051 ms | 128.2 ms |
+| **FP16 + WebGPU** | 45.23 MB | **15.6 / 11.2 ms** | **65.9 ms** | **4.1 ms** |
+| INT8 + WASM（降级路径） | 22.83 MB | 33.2 / 28.7 ms | 1037 ms | 64.8 ms |
 
-分块做错，后面的向量化再准也救不回来。最初版本有两个错误，实测排名直接错乱：
+**应用内实测**（demo-doc.md 13 个块，同一章程序列：分块 → 批量 16 向量化 → 写 seekdb → 单条 SQL 混合检索）：
 
-| 错误做法 | 后果 |
-|---|---|
-| 相邻块加 60 字重叠前缀 | 块首变成半截句子（`式的价值在于…`），语义被破坏 |
-| 只按空行切段 | Markdown 标题和正文粘成一块（`## 二、向量索引seekdb 支持…`） |
+| 后端 | 13 块向量化 | seekdb 写入 + 可见性校验 | seekdb 混合检索 | 端到端（含查询向量化） |
+|---|---:|---:|---:|---:|
+| WebGPU + FP16 | **91 ms（7.0 ms/块）** | 45 ms | 9–23 ms | **31–46 ms** |
+| WASM + INT8 | 1197 ms（92.1 ms/块） | 69 ms | 9–21 ms | 51–62 ms |
 
-修正后：
-
-- 标题前后都强制断行，`## 二、向量索引` 独立成段
-- 纯标题块（< 20 字）丢弃，避免稀释相似度
-- **去掉重叠前缀**——重叠对短文档弊大于利
-- 过滤掉 < 40 字的残片
-
-同一批查询下，"向量索引怎么建" 从命中「嵌入式部署」那段变成命中「HNSW 建表」那段。
-
-### 6. 池化方式
-
-BGE 系列官方用 **CLS 池化**，最初误用了 `mean`。两种方式实测各有胜负，
-但 CLS 在「为什么要把推理放进 Worker」这类查询上从第 3 升到第 1，且符合模型训练方式，故采用 CLS。
-
-### 7. 批量与缓存
-
-- 每 16 段一批送入 Worker，减少消息往返
-- 模型权重走浏览器 Cache Storage，二次访问不再下载
+**加载阶段**（区分首次下载与缓存后）：WebGPU+FP16 首次含 45 MB 权重下载约 7.6 s，缓存后 1.5–2.2 s；
+WASM+INT8 缓存后 1.8–3.1 s。加载后先做预热（短文本 + 接近真实查询长度各一次），把 ONNX 会话初始化与首个序列长度的图编译
+挪出用户查询路径——只预热短文本时第一条真实查询会卡约 400 ms（已修复）。
 
 ## 四、seekdb 承担的部分
 
-### 表结构
+### 4.1 表结构与索引
 
 ```sql
 CREATE TABLE kb_docs (
   id        INT PRIMARY KEY AUTO_INCREMENT,
-  doc_id    VARCHAR(255) NOT NULL,
-  chunk_idx INT NOT NULL,
+  doc_id    VARCHAR(255) NOT NULL,   -- 文件名
+  chunk_idx INT NOT NULL,            -- 块序号
   title     VARCHAR(255) NOT NULL,
-  content   TEXT NOT NULL,
-  embedding VECTOR(512),
-  VECTOR INDEX idx_vec (embedding) WITH (DISTANCE=l2, TYPE=hnsw, LIB=vsag)
+  content   TEXT NOT NULL,           -- 原文
+  embedding VECTOR(512),             -- 端侧模型产出的向量
+  VECTOR INDEX idx_vec (embedding) WITH (DISTANCE=l2, TYPE=hnsw, LIB=vsag),
+  KEY idx_doc (doc_id)
 ) ORGANIZATION = HEAP;
+-- 中文全文检索：ngram 分词
+ALTER TABLE kb_docs ADD FULLTEXT INDEX idx_ft (content, title) WITH PARSER ngram;
 ```
 
-### 两路检索，都在 SQL 里完成
+降级链：HNSW 建表失败 → 无向量索引的全表扫描；ngram FULLTEXT 不可用 → 默认分词器 → SQL 内 `LIKE` 计数；
+单条 SQL 混合检索异常 → 两路查询 + 应用侧 RRF 兜底（响应里 `hybrid` 字段标注实际路径，正常不会走到）。
+
+### 4.2 混合检索：在 seekdb 内用一条 SQL 完成
+
+`POST /api/search` 的核心 SQL（`server/index.mjs`）：向量路与全文路各自在 SQL 内排名，**RRF 融合也用 SQL 聚合完成**，
+Node 侧只做参数替换、结果渲染，不分别取两路结果再自行拼合：
 
 ```sql
--- 向量路
-SELECT id, l2_distance(embedding, ?) AS dist
-  FROM kb_docs ORDER BY dist ASC LIMIT 50;
-
--- 关键词路
-SELECT id FROM kb_docs WHERE content LIKE ? ESCAPE '\\' LIMIT 200;
+WITH vec AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY l2_distance(embedding, ?)) AS rnk
+  FROM kb_docs ORDER BY l2_distance(embedding, ?) LIMIT 50
+),
+kw AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY MATCH(content, title) AGAINST (? IN NATURAL LANGUAGE MODE) DESC) AS rnk
+  FROM kb_docs WHERE MATCH(content, title) AGAINST (? IN NATURAL LANGUAGE MODE) LIMIT 200
+),
+fused AS (
+  SELECT id, SUM(1.0 / (60 + rnk)) AS score
+  FROM (SELECT id, rnk FROM vec UNION ALL SELECT id, rnk FROM kw) u
+  GROUP BY id
+)
+SELECT d.id, d.doc_id, d.chunk_idx, d.title, d.content, f.score,
+       l2_distance(d.embedding, ?) AS dist,
+       MATCH(d.content, d.title) AGAINST (? IN NATURAL LANGUAGE MODE) AS ft_score
+FROM fused f JOIN kb_docs d ON d.id = f.id
+ORDER BY f.score DESC LIMIT ?;
 ```
 
-**注意**：距离计算和过滤都下推到 seekdb，Node 侧只做排名融合，不碰向量运算。
-把 seekdb 换成读一个 JSON 文件，这两条 SQL 的语义都得在 JS 里重写一遍——这就是"实际作用"的判据。
+- 向量距离（`l2_distance`）、全文相关度（`MATCH … AGAINST`）、候选截断、RRF 融合全部在 seekdb 内执行；
+- 选用 RRF（k=60）而不是加权求和，无需归一化两路分数量纲；
+- 中文全文检索用 `WITH PARSER ngram`，查询词直接交给 `MATCH … AGAINST`（自然语言模式），失败时自动降级默认分词器 / `LIKE`。
 
-### 降级策略
+### 4.3 增量写入与索引刷新
 
-部分受限实例（例如匿名试用环境）不允许创建 HNSW 索引，会报
-`HNSW/HGRAPH vector index in Anon Mode not supported`。
-代码里先尝试带索引建表，捕获该错误后自动降级为无索引建表，功能不受影响。
-本机嵌入式实例（v1.4.0.0）权限完整，**HNSW 索引已成功启用**。
+- 每次导入按 `doc_id` **先删后插**（同一事务）：重复上传同一文件会替换旧块，不会产生重复数据；
+- 写入提交后立刻在同一实例内 `SELECT COUNT(*)` 校验**新块已可见**（`/api/ingest` 返回 `visibleChunks`；实测写入 + 校验 45–69 ms）；
+- `GET /api/stats` 从 seekdb 读回知识库状态（块数、文件列表、索引模式），页面刷新/进程重启后前台状态与库内一致；
+- seekdb 嵌入式实例数据目录持久化（`data/seekdb.db`），重启后知识库仍在（Linux 嵌入式路径已实测重启持久化）。
 
-## 五、混合排序
+## 五、性能与质量测试方法
 
-两路各自产生排名，用 RRF 融合：
+- 固定条件：同一台机器（Windows 11 / Intel iGPU / Chrome 155）、同一语料（`demo-doc.md`，13 块）、同一查询集（8 条）、
+  模型版本与精度固定（见 §3.1/3.2）、batch=16、seekdb v1.4.0.0 默认配置。
+- 端侧推理：模型加载 / 预热 / 单条查询向量化 / 16 条批量向量化分阶段计时；单条取 15 次的中位数与最小值，批量取 3 轮中位数。
+- seekdb：`/api/search` 返回服务端计时（`searchMs`），前端记录查询向量化与端到端延迟；13 块语料规模下重复查询取中位。
+- 检索质量：量化前后用同一管线对 demo 语料做检索排名，计算 Recall@1/Recall@3/MRR。
+- 原始数据与复现命令见 [`eval/README.md`](./eval/README.md)。
 
-```
-score(d) = Σ 1 / (60 + rank_i(d))
-```
+## 六、局限与后续
 
-选 RRF 而不是加权求和，是因为它不需要把「距离」和「命中次数」归一化到同一量纲，
-也不需要调权重的经验值——对演示场景足够，且不会因为某一路分数异常而崩。
-
-## 六、实测数据
-
-| 指标 | 数值 | 说明 |
-|---|---|---|
-| 模型加载（首次，含下载） | 3.0 s | 从魔搭社区拉取，之后走缓存 |
-| 单条文本向量化 | 14.0 ms | Node 侧同管线测得 |
-| **查询向量化（预热后）** | **12 ms** | 浏览器实测 |
-| **seekdb 混合检索** | **42 ms** | 5 条候选，含两路查询与融合 |
-| 向量维度 | 512 | bge-small-zh-v1.5 |
-| 无关文本余弦相似度 | 0.28 | 数值合理性自检 |
-
-## 七、局限与后续
-
-1. **候选池固定 50 条**：数据量上千后需要调大，或改用 ANN 结果直接取 Top-K
-2. **关键词路用 LIKE**，不支持分词与相关度加权；后续可换 seekdb 的全文索引
-3. **没有做增量更新**：重复上传同一文件会产生重复块，生产场景应加去重
-4. **模型只有中文**：多语言场景需要换 multilingual 模型（如 `paraphrase-multilingual-MiniLM-L12-v2`）
+1. 候选池固定 50（向量路）/ 200（全文路），适合演示规模；上千文档应调大或改 ANN Top-K 直取；
+2. 中文全文用 ngram 分词，没有同义词/停用词调优；关键词路在无全文索引的环境下降级 `LIKE`，长句召回弱；
+3. 分块为规则切分（标题/段落/句子），未做语义分块；
+4. 单条 SQL 混检依赖 seekdb 的窗口函数与 CTE（v1.4.0 实测可用），旧版本会自动走兜底路径；
+5. Windows 下 `@oceanbase/seekdb-node@1.4.0` 的嵌入式实例在本机无法启动（`fail to init observer`），
+   本地全部实测改用"Windows 前端/后端 + WSL seekdb 服务"的远程模式完成；**Linux 嵌入式路径已单独实测通过**（见 `eval/README.md`），
+   判题环境为 Linux 时按 README 默认嵌入式方式即可。

@@ -1,0 +1,89 @@
+{
+  "schema": "oceanbase-competition/stepfun-compliance-results/v1",
+  "task": "阶跃星辰（StepFun）· 端侧 AI 推理性能优化与 seekdb 混合检索",
+  "status": "PASS",
+  "generatedAt": "2026-10-28T09:10:00+08:00",
+  "checks": [
+    {
+      "id": "no-cloud-inference-api",
+      "rule": "禁止调用云端推理 API；实际计算必须发生在用户设备",
+      "status": "PASS",
+      "evidence": [
+        "src/embed.worker.js 使用 @huggingface/transformers 在浏览器 Web Worker 内执行 ONNX 推理",
+        "模型权重仅从 ModelScope 公开仓库下载（onnx-community/bge-small-zh-v1.5-ONNX），下载后缓存本地",
+        "server/index.mjs 不存在任何推理调用，只接收前端已算好的 512 维向量并写入 seekdb",
+        "全仓库无云端 embedding / LLM API Key、无第三方推理 HTTP 调用"
+      ]
+    },
+    {
+      "id": "browser-side-embedding-doc-and-query",
+      "rule": "文档向量化和查询向量化均须在本地（浏览器）完成",
+      "status": "PASS",
+      "evidence": [
+        "src/main.js: 文档分块后通过 Web Worker 调用 embed，查询侧同样先本地 embed 再请求 /api/search",
+        "界面状态条实测显示『端侧向量化 XXms』，与 seekdb 检索耗时分开计时"
+      ]
+    },
+    {
+      "id": "no-server-precompute-replay",
+      "rule": "禁止预先在服务端算好向量或检索结果后回放，禁止把远程推理伪装成端侧推理",
+      "status": "PASS",
+      "evidence": [
+        "/api/ingest 接收的向量由前端 Worker 现场计算（浏览器内），服务端无 embedding 代码",
+        "检索结果由服务端现查 seekdb 返回（eval/out/e2e-api.json 有每次查询实时耗时 searchMs）",
+        "无预置检索结果、无缓存回放逻辑"
+      ]
+    },
+    {
+      "id": "model-open-and-versioned",
+      "rule": "模型须为可公开获取的开源模型，并在技术说明中注明来源与版本",
+      "status": "PASS",
+      "evidence": [
+        "TECH_REPORT.md §3.1: onnx-community/bge-small-zh-v1.5-ONNX（BAAI/bge-small-zh-v1.5 的 ONNX 版本，MIT 许可），ModelScope revision 5b414c2c2d177d066e7bdc32b6ad2a4518a59333",
+        "README.md 环境要求中注明模型来源与下载体积"
+      ]
+    },
+    {
+      "id": "seekdb-required-for-storage-and-retrieval",
+      "rule": "向量和文档的存储、检索必须使用 seekdb，不得使用其他数据库或客户端内存检索替代",
+      "status": "PASS",
+      "evidence": [
+        "server/index.mjs: 表 kb_docs（VECTOR(512) + HNSW 向量索引 + FULLTEXT ngram 全文索引）保存原文/元数据/向量",
+        "检索完全由 seekdb 执行：单条 SQL 内的 l2_distance + MATCH…AGAINST + RRF 聚合",
+        "无本地 JSON/内存向量索引、无其他数据库依赖（依赖仅 mysql2 用于连接 seekdb 的 MySQL 协议）"
+      ]
+    },
+    {
+      "id": "hybrid-retrieval-in-database-single-statement",
+      "rule": "实现向量与全文混合检索，检索处理由 seekdb 完成，不得在客户端分别获取两路结果后自行拼合来替代数据库混合检索",
+      "status": "PASS",
+      "evidence": [
+        "server/index.mjs buildHybridSql(): 一条 SQL 内 WITH vec + kw 两路排名（ROW_NUMBER 窗口函数），fused 用 SQL 聚合完成 RRF（SUM(1/(60+rnk))），Node 侧不拼合",
+        "响应字段 hybrid=\"single-sql\"；失败才走兜底路径并标注（正常路径实测均为 single-sql）",
+        "eval/out/e2e-api.json 4/4 查询 hybrid=single-sql, keywordMode=fulltext-ngram"
+      ]
+    },
+    {
+      "id": "quantization-scheme",
+      "rule": "对 embedding 模型采用 INT8 或 FP16 方案，并报告量化前后模型体积、压缩比及检索质量变化",
+      "status": "PASS",
+      "evidence": [
+        "WebGPU 路径使用 FP16 权重（45.23 MB），WASM 降级路径使用 INT8/q8 权重（22.83 MB）；FP32 基线 90.42 MB",
+        "压缩比 2.00×（FP16）/ 3.96×（INT8）；量化前后检索质量指标见 eval/out/quality.json 与 TECH_REPORT.md §3.3"
+      ]
+    },
+    {
+      "id": "browser-compatibility",
+      "rule": "应用可在主流现代浏览器 Chrome / Edge 最新版中运行",
+      "status": "PASS",
+      "evidence": [
+        "实际在 Chrome 155（Windows 11）中完成全流程实测（截图 eval/screenshots/*.png）",
+        "仅使用标准 Web API：Web Worker、WebAssembly、WebGPU（可降级）、fetch、Cache Storage"
+      ]
+    }
+  ],
+  "notes": [
+    "合规性结论仅基于本仓库源码与实测数据；无任何第三方推理接口或外部数据库。",
+    "Windows 本机的 seekdb-node 1.4.0 嵌入式实例存在环境问题，实测使用 SEEKDB_REMOTE=1 连接本地 seekdb 服务；Linux 嵌入式路径已单独实测通过（eval/linux-embedded.md）。"
+  ]
+}

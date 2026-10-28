@@ -1,0 +1,148 @@
+{
+  "api": "http://127.0.0.1:8787",
+  "dtype": "q8",
+  "engine": "5.7.25-OceanBase seekdb-v1.4.0.0",
+  "vectorIndex": "hnsw",
+  "keywordMode": "fulltext-ngram",
+  "chunks": 13,
+  "loadMs": 549,
+  "docEmbedMs": 51,
+  "ingest": {
+    "inserted": 13,
+    "replaced": 13,
+    "docs": 1,
+    "visibleChunks": 13,
+    "writeMs": 58,
+    "engine": "5.7.25-OceanBase seekdb-v1.4.0.0",
+    "vectorIndex": "hnsw",
+    "keyword": "fulltext-ngram",
+    "hybrid": "single-sql",
+    "clientMs": 69
+  },
+  "results": [
+    {
+      "query": "向量索引怎么建",
+      "expect": "HNSW 向量索引",
+      "rank": 1,
+      "hybrid": "single-sql",
+      "keywordMode": "fulltext-ngram",
+      "hits": 8,
+      "embedMsMed": 3.2,
+      "searchMsMed": 15.3,
+      "e2eMsMed": 18.6,
+      "top3": [
+        {
+          "title": "demo-doc.md #3",
+          "dist": 0.869,
+          "ft": 1.782,
+          "score": 0.03279
+        },
+        {
+          "title": "demo-doc.md #5",
+          "dist": 0.95,
+          "ft": 0.341,
+          "score": 0.032
+        },
+        {
+          "title": "demo-doc.md #6",
+          "dist": 0.926,
+          "ft": 0.072,
+          "score": 0.03128
+        }
+      ]
+    },
+    {
+      "query": "RRF 是什么",
+      "expect": "RRF 的好处",
+      "rank": 1,
+      "hybrid": "single-sql",
+      "keywordMode": "fulltext-ngram",
+      "hits": 8,
+      "embedMsMed": 2.5,
+      "searchMsMed": 13.6,
+      "e2eMsMed": 16,
+      "top3": [
+        {
+          "title": "demo-doc.md #8",
+          "dist": 0.989,
+          "ft": 1.666,
+          "score": 0.03227
+        },
+        {
+          "title": "demo-doc.md #6",
+          "dist": 0.996,
+          "ft": 0.873,
+          "score": 0.03175
+        },
+        {
+          "title": "demo-doc.md #1",
+          "dist": 0.952,
+          "ft": 0,
+          "score": 0.01639
+        }
+      ]
+    },
+    {
+      "query": "混合检索怎么融合两路结果",
+      "expect": "混合检索把两路",
+      "rank": 1,
+      "hybrid": "single-sql",
+      "keywordMode": "fulltext-ngram",
+      "hits": 8,
+      "embedMsMed": 2.9,
+      "searchMsMed": 18.9,
+      "e2eMsMed": 21.8,
+      "top3": [
+        {
+          "title": "demo-doc.md #6",
+          "dist": 0.82,
+          "ft": 4.509,
+          "score": 0.03279
+        },
+        {
+          "title": "demo-doc.md #8",
+          "dist": 0.963,
+          "ft": 0.833,
+          "score": 0.03226
+        },
+        {
+          "title": "demo-doc.md #1",
+          "dist": 1.106,
+          "ft": 0.404,
+          "score": 0.0315
+        }
+      ]
+    },
+    {
+      "query": "量化之后模型体积和性能怎么变",
+      "expect": "量化到 8 位整数",
+      "rank": 1,
+      "hybrid": "single-sql",
+      "keywordMode": "fulltext-ngram",
+      "hits": 8,
+      "embedMsMed": 2.8,
+      "searchMsMed": 18.4,
+      "e2eMsMed": 21.2,
+      "top3": [
+        {
+          "title": "demo-doc.md #11",
+          "dist": 0.831,
+          "ft": 1.62,
+          "score": 0.03279
+        },
+        {
+          "title": "demo-doc.md #13",
+          "dist": 0.914,
+          "ft": 0.823,
+          "score": 0.03226
+        },
+        {
+          "title": "demo-doc.md #12",
+          "dist": 0.975,
+          "ft": 0.444,
+          "score": 0.03175
+        }
+      ]
+    }
+  ]
+}

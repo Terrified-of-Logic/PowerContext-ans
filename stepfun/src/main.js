@@ -2,6 +2,11 @@ const $ = (id) => document.getElementById(id);
 const statusEl = $('status');
 const barEl = $('bar');
 const outEl = $('out');
+const backendEl = $('backend');
+const kbEl = $('kb');
+
+// ?device=wasm / ?device=webgpu 可强制指定端侧推理后端，用于验证「WebGPU 优先 + WASM 降级」两条路径
+const FORCE_DEVICE = new URLSearchParams(location.search).get('device') || 'auto';
 
 /* ---------------- Worker RPC ---------------- */
 
@@ -14,7 +19,7 @@ worker.addEventListener('message', (e) => {
   if (msg.type === 'progress') {
     const p = msg.payload || {};
     if (p.status === 'progress' && typeof p.progress === 'number') {
-      setStatus(`下载模型中 ${p.file || ''} ${p.progress.toFixed(0)}%`, false, p.progress);
+      setStatus(`加载端侧模型 ${p.file || ''} ${p.progress.toFixed(0)}%`, false, p.progress);
     }
     return;
   }
@@ -42,6 +47,48 @@ function setStatus(text, ok = false, progress = null) {
   statusEl.textContent = text;
   statusEl.classList.toggle('ok', ok);
   if (progress !== null) barEl.style.width = String(progress) + '%';
+}
+
+function setBackend(info) {
+  const label = info.backend || (info.device === 'webgpu' ? 'WebGPU' : 'WASM');
+  const dtype = info.dtype === 'q8' ? 'INT8' : String(info.dtype || '').toUpperCase();
+  let text = `推理后端：${label} · ${dtype}`;
+  if (info.fallbackReason) text += `（${info.fallbackReason}）`;
+  backendEl.textContent = text;
+  backendEl.className = 'badge ' + (info.device === 'webgpu' ? 'gpu' : 'cpu');
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function highlight(text, terms) {
+  let html = esc(text);
+  for (const t of terms) {
+    if (!t) continue;
+    const re = new RegExp(esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    html = html.replace(re, (m) => `<mark>${m}</mark>`);
+  }
+  return html;
+}
+
+/* ---------------- 知识库状态（seekdb 中持久化，刷新/重启后读回） ---------------- */
+
+async function refreshStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'stats 失败');
+    const files = j.files || [];
+    kbEl.textContent =
+      `知识库：${j.docs} 块 / ${files.length} 个文件` +
+      (files.length ? `（${files.map((f) => `${f.docId}×${f.chunks}`).join('、')}）` : '') +
+      ` · 向量索引=${j.vectorIndex} · 关键词路=${j.keyword} · 混合=${j.hybrid}`;
+    return j;
+  } catch (e) {
+    kbEl.textContent = '知识库：无法读取状态（' + e.message + '）';
+    return null;
+  }
 }
 
 /* ---------------- 分块 ---------------- */
@@ -105,13 +152,15 @@ async function ingestFiles(files) {
 
     if (!chunks.length) continue;
 
-    // 分批向量化，每批 16 条
+    // 分批向量化，每批 16 条：减少 Worker 消息往返、摊薄单次调用开销
     const BATCH = 16;
     const records = [];
+    let embedMsSum = 0;
     for (let i = 0; i < chunks.length; i += BATCH) {
       const batch = chunks.slice(i, i + BATCH);
       setStatus(`向量化 ${f.name} ${i}/${chunks.length} 段（端侧推理）`);
       const { vectors, dim, ms } = await call('embed', { texts: batch });
+      embedMsSum += ms;
       if (dim !== 512) console.warn('维度异常', dim);
       batch.forEach((content, k) => {
         records.push({
@@ -125,6 +174,7 @@ async function ingestFiles(files) {
       console.log(`[embed] ${batch.length} 段 ${ms.toFixed(0)}ms`);
     }
 
+    const t1 = performance.now();
     const r = await fetch('/api/ingest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -133,10 +183,17 @@ async function ingestFiles(files) {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || '入库失败');
     total += j.inserted;
-    setStatus(`${f.name} 入库 ${j.inserted} 段（累计 ${total}）`, true, 100);
+    const ms = performance.now() - t1;
+    setStatus(
+      `${f.name} 入库 ${j.inserted} 块（替换旧块 ${j.replaced}）· 端侧向量化 ${embedMsSum.toFixed(0)}ms` +
+        `（${(embedMsSum / chunks.length).toFixed(1)}ms/块）· seekdb 写入+可见校验 ${ms.toFixed(0)}ms（累计 ${total}）`,
+      true,
+      100
+    );
+    await refreshStats();
   }
 
-  outEl.innerHTML = `<div class="empty">已入库 ${total} 个文本块，可以开始检索了</div>`;
+  outEl.innerHTML = `<div class="empty">已入库 ${total} 个文本块（同文件重复上传会替换旧块），可以开始检索了</div>`;
 }
 
 /* ---------------- 检索 ---------------- */
@@ -144,20 +201,6 @@ async function ingestFiles(files) {
 // BGE 系列模型对「查询」需要指令前缀，否则检索效果明显下降
 // 文档侧不加前缀，查询侧加，这是非对称检索的标准做法
 const QUERY_PREFIX = '为这个句子生成表示以用于检索相关文章：';
-
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-function highlight(text, terms) {
-  let html = esc(text);
-  for (const t of terms) {
-    if (!t) continue;
-    const re = new RegExp(esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    html = html.replace(re, (m) => `<mark>${m}</mark>`);
-  }
-  return html;
-}
 
 async function search() {
   const q = $('q').value.trim();
@@ -178,6 +221,7 @@ async function search() {
     });
     const j = await r.json();
     const searchMs = performance.now() - t1;
+    const e2eMs = performance.now() - t0;
 
     if (!r.ok) throw new Error(j.error || '检索失败');
 
@@ -194,7 +238,7 @@ async function search() {
       <div class="hit">
         <h3>${i + 1}. ${esc(h.title)}</h3>
         <div class="meta">
-          向量距离 ${Number(h.dist).toFixed(4)} · 关键词命中 ${h.kw_hits} 次 · 融合分 ${Number(h.score).toFixed(6)}
+          向量距离 ${Number(h.dist).toFixed(4)} · 全文相关度 ${Number(h.kw_hits).toFixed(4)} · RRF 融合分 ${Number(h.score).toFixed(6)}
         </div>
         <div>${highlight(h.content, terms)}</div>
       </div>`
@@ -202,7 +246,7 @@ async function search() {
       .join('');
 
     setStatus(
-      `端侧向量化 ${embedMs.toFixed(0)}ms · seekdb 检索 ${searchMs.toFixed(0)}ms · 命中 ${j.hits.length} 条`,
+      `端侧向量化 ${embedMs.toFixed(0)}ms · seekdb 混合检索 ${searchMs.toFixed(0)}ms（单条 SQL：${j.hybrid}）· 端到端 ${e2eMs.toFixed(0)}ms · 命中 ${j.hits.length} 条`,
       true,
       100
     );
@@ -230,11 +274,14 @@ $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
 /* ---------------- 启动 ---------------- */
 
 (async () => {
+  await refreshStats();
   try {
-    setStatus('正在加载端侧模型（首次约 25–40 MB，之后走浏览器缓存）…', false, 0);
-    const r = await call('load', {});
+    setStatus('正在加载端侧模型（首次约 25–45 MB，之后走浏览器缓存）…', false, 0);
+    const r = await call('load', { device: FORCE_DEVICE });
+    setBackend(r);
     setStatus(
-      `模型就绪（${r.dim} 维，q8 量化）· 加载 ${(r.loadMs / 1000).toFixed(1)}s · 预热 ${r.warmMs.toFixed(0)}ms，可以上传文件了`,
+      `模型就绪（${r.dim} 维 · ${r.backend} · ${r.dtype === 'q8' ? 'INT8' : r.dtype.toUpperCase()}）` +
+        ` · 加载 ${(r.loadMs / 1000).toFixed(1)}s · 预热 ${r.warmMs.toFixed(0)}ms，可以上传文件了`,
       true,
       100
     );

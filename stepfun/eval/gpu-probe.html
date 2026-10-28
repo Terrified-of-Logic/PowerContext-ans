@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>WebGPU probe</title></head>
+<body>
+<h1>WebGPU probe</h1>
+<pre id="out">running...</pre>
+<script>
+(async () => {
+  const lines = [];
+  lines.push('crossOriginIsolated=' + self.crossOriginIsolated);
+  lines.push('navigator.gpu=' + (navigator.gpu ? 'present' : 'absent'));
+  lines.push('userAgent=' + navigator.userAgent);
+  if (navigator.gpu) {
+    try {
+      const a = await navigator.gpu.requestAdapter();
+      lines.push('adapter=' + (a ? 'ok' : 'null'));
+      if (a) {
+        const info = a.info || {};
+        lines.push('vendor=' + (info.vendor || '?') + ' architecture=' + (info.architecture || '?') + ' device=' + (info.device || '?'));
+        lines.push('features=' + [...a.features].join(','));
+        lines.push('maxBufferSize=' + a.limits.maxBufferSize);
+      }
+    } catch (e) { lines.push('adapter error: ' + e.message); }
+  }
+  document.getElementById('out').textContent = lines.join('\n');
+})();
+</script>
+</body>
+</html>

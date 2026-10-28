@@ -1,0 +1,193 @@
+{
+  "schema": "oceanbase-competition/stepfun-submission-results/v1",
+  "task": {
+    "questionId": "600073",
+    "name": "阶跃星辰（StepFun）",
+    "title": "端侧 AI 推理性能优化与 seekdb 混合检索",
+    "maxScore": 20
+  },
+  "status": "PASS",
+  "result": "PASS",
+  "generatedAt": "2026-10-28T09:10:00+08:00",
+  "submitter": {
+    "team": "害怕逻辑ME",
+    "repo": "https://github.com/Terrified-of-Logic/PowerContext-ans",
+    "branch": "2026-competition-ecosystem",
+    "directory": "stepfun/"
+  },
+  "summary": "浏览器端侧向量化（WebGPU+FP16 优先 / WASM+INT8 自动降级）+ seekdb 存储与单条 SQL 混合检索（向量 + FULLTEXT ngram + RRF 融合全部在 seekdb 内完成）的迷你知识库应用，含量化前后体积/质量对比与分阶段性能实测。",
+  "app": {
+    "entry": "stepfun/index.html",
+    "type": "可本地运行的 Web 应用（Vite + 原生 JS + Web Worker + Node/Express + seekdb 嵌入式）",
+    "startCommands": ["npm install", "npm start"],
+    "url": "http://localhost:5173/",
+    "api": "http://127.0.0.1:8787/",
+    "browserRequirement": "Chrome / Edge 最新版（WebAssembly + Web Worker；支持 WebGPU 时自动启用 WebGPU）",
+    "serverRequirement": "Node.js >= 22（@oceanbase/seekdb-node 要求）",
+    "database": "seekdb v1.4.0.0，嵌入式（进程内）或 SEEKDB_REMOTE=1 连接本地服务器",
+    "demoData": "stepfun/demo-doc.md（13 个文本块）"
+  },
+  "checks": [
+    {
+      "id": "complete-flow",
+      "title": "完整流程：导入文本 → 本地生成向量 → 写入 seekdb → 查询 → 展示排序结果",
+      "status": "PASS",
+      "evidence": [
+        "eval/out/e2e-api.json: 13 块导入（inserted=13, visibleChunks=13, writeMs=61），4/4 条查询首位命中",
+        "eval/screenshots/webgpu-fp16.png: 浏览器内导入 demo-doc.md 并展示检索结果",
+        "src/main.js: ingestFiles()/search() 全链路"
+      ]
+    },
+    {
+      "id": "browser-local-inference",
+      "title": "本地推理：文档与查询 embedding 均在浏览器本地计算，无云端推理 API",
+      "status": "PASS",
+      "evidence": [
+        "src/embed.worker.js: Transformers.js pipeline 在 Web Worker 内执行 ONNX 推理",
+        "模型权重从 ModelScope 公开下载后缓存（Cache Storage），推理发生在用户设备",
+        "无任何云端推理 API 调用；服务端只接收向量（server/index.mjs /api/ingest 只做 SQL 写入）"
+      ]
+    },
+    {
+      "id": "model-quantization-report",
+      "title": "模型量化：模型来源/版本、INT8/FP16 方案、体积对比、压缩比、检索质量变化",
+      "status": "PASS",
+      "evidence": [
+        "TECH_REPORT.md §3.1-3.3",
+        "eval/out/quality.json: FP32/FP16/INT8 的 Recall@1/Recall@3/MRR",
+        "模型体积：FP32 90.42 MB → FP16 45.23 MB（2.00×）→ INT8 22.83 MB（3.96×）"
+      ]
+    },
+    {
+      "id": "backend-webgpu-first",
+      "title": "后端与降级：优先 WebGPU（显式配置），不支持时自动降级 WASM，界面明确提示",
+      "status": "PASS",
+      "evidence": [
+        "src/embed.worker.js: navigator.gpu 检测 → pipeline({device:'webgpu', dtype:'fp16'})，失败自动 catch 后 pipeline({device:'wasm', dtype:'q8'})",
+        "src/main.js / index.html: 页面徽标显示「推理后端：WebGPU · FP16」或「WASM · INT8（降级原因）」",
+        "eval/screenshots/webgpu-fp16.png（WebGPU 路径）与 eval/screenshots/wasm-fallback.png（?device=wasm 降级路径）",
+        "eval/out/backend-browser.json: 两条路径的加载/单条/批量实测"
+      ]
+    },
+    {
+      "id": "seekdb-data-layer",
+      "title": "seekdb 数据层：向量/原文/元数据存于 seekdb，向量与全文混合检索在 seekdb 中完成",
+      "status": "PASS",
+      "evidence": [
+        "server/index.mjs: 表 kb_docs（VECTOR(512) + HNSW 向量索引 + FULLTEXT ngram 全文索引）",
+        "单条 SQL 完成两路检索与 RRF 融合（WITH vec/kw/fused + ROW_NUMBER + UNION ALL + SUM），Node 侧不拼合两路结果",
+        "/api/search 响应 hybrid=\"single-sql\" 表示实际走单条 SQL",
+        "eval/out/e2e-api.json: 4/4 查询 hybrid=single-sql, keywordMode=fulltext-ngram"
+      ]
+    },
+    {
+      "id": "state-and-refresh",
+      "title": "状态与刷新：增量导入、新增内容可检索、集合/会话状态正确",
+      "status": "PASS",
+      "evidence": [
+        "server/index.mjs: 同 doc_id 先删后插事务，重复上传替换旧块（replaced 字段）",
+        "写入提交后立即 SELECT COUNT(*) 校验 visibleChunks（eval/out/e2e-api.json writeMs=61, visibleChunks=13）",
+        "GET /api/stats 从 seekdb 读回块数/文件列表，页面刷新与进程重启后状态一致",
+        "eval/linux-embedded.md: Linux 嵌入式实例重启后 docs=3、索引模式仍为 hnsw/fulltext-ngram"
+      ]
+    },
+    {
+      "id": "reproducibility",
+      "title": "可复现性：按提交说明可启动应用与数据库并完成上述操作",
+      "status": "PASS",
+      "evidence": [
+        "README.md: 环境要求、npm install / npm start、验收步骤",
+        "stepfun/package-lock.json: 依赖版本固定（含 @huggingface/transformers 4.3.2、@oceanbase/seekdb-node 1.4.0）",
+        "scripts/check-sql.mjs / scripts/smoke-api.mjs / scripts/eval-quality.mjs：一键复现 SQL、端到端、量化质量数据",
+        "eval/linux-embedded.md: Linux（WSL Ubuntu 24.04 + Node 22）嵌入式 seekdb 路径实测通过"
+      ]
+    }
+  ],
+  "functionalTestRuns": [
+    {
+      "name": "seekdb SQL 兼容性自检",
+      "command": "SEEKDB_HOST=127.0.0.1 SEEKDB_PORT=2882 npm run eval:sql",
+      "engine": "5.7.25-OceanBase seekdb-v1.4.0.0",
+      "passed": 9,
+      "failed": 0,
+      "cases": [
+        "连接 + 版本",
+        "建表（VECTOR 列 + HNSW 向量索引）",
+        "建全文索引（ngram 分词）",
+        "写入 VECTOR 字面量参数",
+        "提交后立即可见（索引刷新语义）",
+        "单条 SQL 混合检索（向量路 + 全文路 + RRF 融合）",
+        "同 doc_id 增量替换（先删后插）"
+      ]
+    },
+    {
+      "name": "端到端 API 冒烟（本地 embedding → /api/ingest → /api/search）",
+      "command": "npm run eval:e2e",
+      "passed": true,
+      "queries": 4,
+      "top1Hits": 4,
+      "dataFile": "eval/out/e2e-api.json"
+    },
+    {
+      "name": "Linux 嵌入式 seekdb 启动 + 导入 + 重启持久化",
+      "command": "wsl bash stepfun_wsl_linux_test.sh（步骤见 eval/linux-embedded.md）",
+      "passed": true,
+      "detail": "npm install 152 包；嵌入式 seekdb 4–5s 就绪；/api/ingest 3 块 writeMs=60；3/3 查询 top1 命中；重启后 docs=3、hnsw/fulltext-ngram 保持"
+    }
+  ],
+  "quantization": {
+    "model": {
+      "name": "onnx-community/bge-small-zh-v1.5-ONNX",
+      "baseModel": "BAAI/bge-small-zh-v1.5",
+      "dimension": 512,
+      "source": "https://modelscope.cn/models/onnx-community/bge-small-zh-v1.5-ONNX",
+      "revision": "5b414c2c2d177d066e7bdc32b6ad2a4518a59333",
+      "license": "开源（BAAI bge-small-zh-v1.5，MIT）"
+    },
+    "variants": [
+      { "precision": "FP32", "files": ["onnx/model.onnx", "onnx/model.onnx_data"], "sizeMB": 90.42, "compressionRatio": 1.0, "usedBy": "量化前基线" },
+      { "precision": "FP16", "files": ["onnx/model_fp16.onnx", "onnx/model_fp16.onnx_data"], "sizeMB": 45.23, "compressionRatio": 2.0, "usedBy": "WebGPU 优先路径" },
+      { "precision": "INT8/q8", "files": ["onnx/model_quantized.onnx", "onnx/model_quantized.onnx_data"], "sizeMB": 22.83, "compressionRatio": 3.96, "usedBy": "WASM 降级路径" }
+    ],
+    "quality": {
+      "method": "同管线（CLS 池化 + 查询指令前缀 + 相同分块）对 demo-doc.md 的 13 块 × 8 查询计算检索排名，指标 Recall@K / MRR",
+      "fp32": { "recall1": 0.75, "recall3": 0.875, "mrr": 0.844 },
+      "fp16": { "recall1": 0.75, "recall3": 0.875, "mrr": 0.844 },
+      "int8": { "recall1": 0.75, "recall3": 1.0, "mrr": 0.854 },
+      "conclusion": "量化后检索质量无明显下降（INT8 在 Recall@3/MRR 上略优于基线，样本为演示规模）",
+      "dataFile": "eval/out/quality.json"
+    }
+  },
+  "performance": {
+    "dataFile": "eval/out/backend-browser.json",
+    "summaryFile": "TECH_REPORT.md §3.5",
+    "stageTimings": {
+      "webgpuFp16": { "modelLoadCachedMs": 1500, "modelLoadFirstMs": 7600, "warmupMs": 137, "singleQueryEmbedMedianMs": 15.6, "batch16Ms": 65.9, "ingest13ChunksEmbedMs": 91, "seekdbWriteVisibleMs": 45, "hybridSearchMs": [9, 10, 22, 23], "e2eQueryMs": [31, 33, 46] },
+      "wasmInt8": { "modelLoadCachedMs": 1840, "warmupMs": 113, "singleQueryEmbedMedianMs": 33.2, "batch16Ms": 1037.2, "ingest13ChunksEmbedMs": 1197, "seekdbWriteVisibleMs": 69, "hybridSearchMs": [19, 21], "e2eQueryMs": [51, 62] },
+      "baselineFp32Wasm": { "singleQueryEmbedMedianMs": 57.3, "batch16Ms": 2051.4 }
+    },
+    "optimizations": [
+      "Web Worker 端侧推理（不阻塞主线程）",
+      "batch=16 向量化，减少 Worker 消息往返",
+      "加载后预热（短文本 + 真实查询长度各一次），消除首条查询 ~400ms 图编译毛刺",
+      "CLS 池化 + 查询指令前缀（BGE 官方用法，检索质量）",
+      "浏览器 Cache Storage 缓存模型权重（二次加载 1.5–2.2s 对比首次 7.6s）",
+      "WebGPU 优先（批量向量化比 WASM 快 13×：13 块 91ms vs 1197ms）",
+      "seekdb 单条 SQL 混合检索（13 块语料 9–23ms）"
+    ]
+  },
+  "compliance": {
+    "dataFile": "stepfun/compliance-results.json",
+    "conclusion": "无云端推理 API、无服务端预计算/回放、向量与检索均使用 seekdb"
+  },
+  "artifacts": {
+    "readme": "README.md",
+    "techReport": "TECH_REPORT.md",
+    "submissionResults": "submission-results.json",
+    "complianceResults": "compliance-results.json",
+    "performanceResults": "performance-results.json",
+    "evaluationReadme": "eval/README.md",
+    "rawData": ["eval/out/quality.json", "eval/out/backend-browser.json", "eval/out/e2e-api.json"],
+    "screenshots": ["eval/screenshots/webgpu-fp16.png", "eval/screenshots/wasm-fallback.png"]
+  }
+}

@@ -8,9 +8,13 @@ data-*/
 # 构建产物
 dist/
 
-# 本地缓存
+# 本地缓存（模型权重缓存、npm 缓存）
+.cache/
 .npm-cache/
 _tmp/
+
+# 评测原始下载物与临时文件
+eval/tmp/
 
 # 系统
 .DS_Store

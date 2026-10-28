@@ -23,6 +23,10 @@
   button:disabled{opacity:.55;cursor:default}
   .status{font-size:13px;color:var(--muted);margin-top:10px;min-height:20px}
   .status.ok{color:var(--ok)}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#fff}
+  .badge.gpu{border-color:#bc8cff;background:#f6efff;color:#6f42c1}
+  .badge.cpu{border-color:#ffd8a8;background:#fff8ef;color:#b35c00}
+  .kb{font-size:12px;color:var(--muted)}
   .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
   .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
   .hit{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
@@ -48,6 +52,10 @@
       <input type="file" id="file" accept=".txt,.md" multiple style="display:none" />
       <button id="pick" style="margin-left:8px">选择文件</button>
     </div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="badge" id="backend">推理后端：加载中…</span>
+      <span class="kb" id="kb">知识库：读取中…</span>
+    </div>
     <div class="status" id="status">模型未加载</div>
     <div class="bar"><i id="bar"></i></div>
   </div>
@@ -63,9 +71,9 @@
 </main>
 
 <footer>
-  端侧推理：@huggingface/transformers（模型 onnx-community/bge-small-zh-v1.5-ONNX，q8 量化，权重来自魔搭社区） ·
+  端侧推理：@huggingface/transformers（onnx-community/bge-small-zh-v1.5-ONNX，优先 WebGPU+FP16，自动降级 WASM+INT8，权重来自魔搭社区） ·
   检索：@oceanbase/seekdb-node 嵌入式实例 ·
-  混合排序：向量距离 + 关键词命中，RRF 融合
+  混合检索：向量距离 + FULLTEXT 全文相关度两路排名，RRF 融合在 seekdb 的单条 SQL 内完成
 </footer>
 
 <script type="module" src="/src/main.js"></script>

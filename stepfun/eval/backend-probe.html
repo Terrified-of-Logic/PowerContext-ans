@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>StepFun backend probe</title>
+<style>body{font:13px/1.5 monospace;white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>StepFun 端侧推理后端探针</h1>
+<pre id="out">running...</pre>
+<script type="module">
+const out = (s) => { document.getElementById('out').textContent = s; };
+const lines = [];
+const log = (s) => { lines.push(s); out(lines.join('\n')); };
+
+const version = new URLSearchParams(location.search).get('v') || '4.3.2';
+const only = new URLSearchParams(location.search).get('only') || '';
+const mod = await import(`https://cdn.jsdelivr.net/npm/@huggingface/transformers@${version}`);
+const { pipeline, env } = mod;
+env.allowLocalModels = false;
+env.useBrowserCache = true;
+env.remoteHost = 'https://modelscope.cn/models';
+env.remotePathTemplate = '{model}/resolve/master/';
+const MODEL = 'onnx-community/bge-small-zh-v1.5-ONNX';
+const PREFIX = '为这个句子生成表示以用于检索相关文章：';
+
+log('transformers.js ' + version + ' loaded');
+log('navigator.gpu = ' + (navigator.gpu ? 'present' : 'absent'));
+if (navigator.gpu) {
+  try {
+    const a = await navigator.gpu.requestAdapter();
+    const i = (a && a.info) || {};
+    log('adapter: ' + (a ? `vendor=${i.vendor} arch=${i.architecture} f16=${a.features.has('shader-f16')}` : 'null'));
+  } catch (e) { log('adapter error: ' + e.message); }
+}
+
+const QUERIES = [
+  '为这个句子生成表示以用于检索相关文章：向量索引怎么建',
+  '为这个句子生成表示以用于检索相关文章：RRF 是什么',
+  '为这个句子生成表示以用于检索相关文章：混合检索怎么融合两路结果',
+  '为这个句子生成表示以用于检索相关文章：量化之后模型体积和性能怎么变',
+  '为这个句子生成表示以用于检索相关文章：浏览器里怎么跑端侧推理',
+];
+
+async function run(device, dtype) {
+  const t0 = performance.now();
+  let extractor, err = '';
+  try {
+    extractor = await pipeline('feature-extraction', MODEL, { device, dtype, progress_callback: () => {} });
+  } catch (e) {
+    log(`[${device}/${dtype}] pipeline FAILED after ${(performance.now() - t0).toFixed(0)}ms: ` + (e.message || e));
+    return null;
+  }
+  const loadMs = performance.now() - t0;
+  const embed = async (texts) => {
+    const a = performance.now();
+    const o = await extractor(texts, { pooling: 'cls', normalize: true });
+    return { ms: performance.now() - a, dims: o.dims };
+  };
+  // warmup x3 (shader/pipeline compile is per shape+device, keep it out of steady-state numbers)
+  const warm = [];
+  for (let i = 0; i < 3; i++) warm.push(+(await embed([QUERIES[i % QUERIES.length]])).ms.toFixed(1));
+
+  // steady state: 5 single-text queries x 3 rounds
+  const singles = [];
+  for (let r = 0; r < 3; r++) for (const q of QUERIES) singles.push((await embed([q])).ms);
+  singles.sort((a, b) => a - b);
+  const med = singles[Math.floor(singles.length / 2)];
+
+  // batch throughput: 16 texts, 3 rounds
+  const batchTexts = Array.from({ length: 16 }, (_, i) => PREFIX + QUERIES[i % QUERIES.length]);
+  const batches = [];
+  for (let r = 0; r < 3; r++) batches.push((await embed(batchTexts)).ms);
+  batches.sort((a, b) => a - b);
+  const batchMed = batches[Math.floor(batches.length / 2)];
+
+  const dims = (await embed(['预热'])).dims;
+  const r = {
+    device,
+    dtype,
+    loadMs: Math.round(loadMs),
+    warmMs: warm,
+    singleMsMin: +singles[0].toFixed(1),
+    singleMsMed: +med.toFixed(1),
+    batch16MsMed: +batchMed.toFixed(1),
+    perTextBatchMs: +(batchMed / 16).toFixed(2),
+    dims: JSON.stringify(dims),
+  };
+  log(`[${device}/${dtype}] OK ` + JSON.stringify(r));
+  return r;
+}
+
+const jobs = [];
+if (!only || only === 'webgpu') jobs.push(['webgpu', 'fp16']);
+if (!only || only === 'wasm') jobs.push(['wasm', 'q8']);
+if (only === 'wasm-fp32') jobs.push(['wasm', 'fp32']);
+const results = [];
+for (const [d, q] of jobs) results.push(await run(d, q));
+log('\nRESULTS_JSON ' + JSON.stringify(results));
+log('DONE');
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{
+  "env": {
+    "browser": "Chrome 155.0.0.0",
+    "os": "Windows 11",
+    "gpu": "Intel gen-12lp (WebGPU adapter, shader-f16 = true)",
+    "webgpu": true,
+    "modelCached": true
+  },
+  "method": "eval/backend-probe.html 用与 src/embed.worker.js 相同的环境配置（ModelScope remoteHost / 同一模型 / CLS 池化）加载 @huggingface/transformers@4.3.2；每个配置先 3 次预热，再 5 条查询 × 3 轮取单条中位/最小，16 条批量 × 3 轮取中位。",
+  "results": [
+    {
+      "config": "FP32 + WASM（量化前基线）",
+      "device": "wasm",
+      "dtype": "fp32",
+      "modelSizeMB": 90.42,
+      "loadMs": 6718,
+      "loadNote": "首次加载（含 90.42MB 权重下载）",
+      "singleMsMin": 35.4,
+      "singleMsMed": 57.3,
+      "batch16MsMed": 2051.4,
+      "perTextBatchMs": 128.21
+    },
+    {
+      "config": "FP16 + WebGPU（优先路径）",
+      "device": "webgpu",
+      "dtype": "fp16",
+      "modelSizeMB": 45.23,
+      "loadMs": 2244,
+      "loadNote": "缓存后加载；首次冷加载 7633ms（含 45.23MB 下载）",
+      "singleMsMin": 11.2,
+      "singleMsMed": 15.6,
+      "batch16MsMed": 65.9,
+      "perTextBatchMs": 4.12
+    },
+    {
+      "config": "INT8 + WASM（自动降级路径）",
+      "device": "wasm",
+      "dtype": "q8",
+      "modelSizeMB": 22.83,
+      "loadMs": 1840,
+      "loadNote": "缓存后加载",
+      "singleMsMin": 28.7,
+      "singleMsMed": 33.2,
+      "batch16MsMed": 1037.2,
+      "perTextBatchMs": 64.83
+    }
+  ],
+  "appRuns": {
+    "method": "应用内实测：demo-doc.md 分成 13 块，batch=16 向量化 → POST /api/ingest → 检索若干条查询；页面状态条读数。",
+    "webgpu": {
+      "ingestChunks": 13,
+      "embedMsTotal": 91,
+      "embedMsPerChunk": 7.0,
+      "writeAndVisibleCheckMs": 45,
+      "searchMs": [9, 10, 22, 23],
+      "e2eMs": [31, 33, 46]
+    },
+    "wasm": {
+      "ingestChunks": 13,
+      "embedMsTotal": 1197,
+      "embedMsPerChunk": 92.1,
+      "writeAndVisibleCheckMs": 69,
+      "searchMs": [19, 21],
+      "e2eMs": [51, 62]
+    }
+  },
+  "notes": [
+    "同一台机器、同一时段、同语料测得，非理论估值。",
+    "只预热短文本时，WebGPU 第一条真实查询会多约 400ms（不同序列长度触发图/着色器编译）；worker 已改为短文本+真实查询长度各预热一次，修复后首条查询与稳态一致。",
+    "WASM 批量吞吐明显低于单条（浏览器多线程 WASM 需要 COOP/COEP 跨源隔离头，本应用未开启）——这也是优先 WebGPU 的直接理由。"
+  ]
+}

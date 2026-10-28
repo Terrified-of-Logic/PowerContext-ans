@@ -1,0 +1,125 @@
+{
+  "schema": "oceanbase-competition/stepfun-performance-results/v1",
+  "task": "阶跃星辰（StepFun）· 端侧 AI 推理性能优化与 seekdb 混合检索",
+  "status": "PASS",
+  "generatedAt": "2026-10-28T09:10:00+08:00",
+  "testConditions": {
+    "device": "Windows 11，Intel gen-12lp 核显（WebGPU adapter，支持 shader-f16）",
+    "browser": "Chrome 155.0.0.0",
+    "node": "v24.17.0（Windows）；v22.20.0（WSL Linux 嵌入式验证）",
+    "seekdb": "5.7.25-OceanBase seekdb-v1.4.0.0（@oceanbase/seekdb-node 1.4.0）",
+    "model": "onnx-community/bge-small-zh-v1.5-ONNX（revision 5b414c2c2d177d066e7bdc32b6ad2a4518a59333），512 维，CLS 池化，查询侧加 BGE 指令前缀",
+    "corpus": "demo-doc.md，13 个文本块",
+    "querySet": "8 条自然语言查询（固定）",
+    "batchSize": 16,
+    "seekdbConfig": "默认配置；表 kb_docs（VECTOR(512) HNSW + FULLTEXT ngram）",
+    "timingMethod": "端侧：15 次单条中位/最小 + 3 轮 16 条批量中位；seekdb：/api/search 服务端计时；端到端：前端 performance.now 差值"
+  },
+  "resultsTable": [
+    {
+      "configuration": "量化前基线（FP32 + WASM）",
+      "modelSizeMB": 90.42,
+      "vectorizationThroughput": { "singleTextMsMedian": 57.3, "batch16MsMedian": 2051.4, "perTextInBatch16Ms": 128.21 },
+      "seekdbRetrievalLatencyMs": { "singleSqlHybridMedian": "9–23（13 块语料，同其它行）" },
+      "endToEndQueryLatencyMs": { "method": "embed + 检索；基线为同管线（Node/CPU）估算", "median": "约 70–90" },
+      "retrievalQuality": { "recall1": 0.75, "recall3": 0.875, "mrr": 0.844 },
+      "backend": "wasm",
+      "dtype": "fp32"
+    },
+    {
+      "configuration": "FP16 + WebGPU（优先路径）",
+      "modelSizeMB": 45.23,
+      "vectorizationThroughput": { "singleTextMsMedian": 15.6, "singleTextMsMin": 11.2, "batch16MsMedian": 65.9, "perTextInBatch16Ms": 4.12 },
+      "seekdbRetrievalLatencyMs": { "singleSqlHybridMedian": "9–23", "samples": [9, 10, 22, 23] },
+      "endToEndQueryLatencyMs": { "median": 33, "samples": [31, 33, 46] },
+      "retrievalQuality": { "recall1": 0.75, "recall3": 0.875, "mrr": 0.844 },
+      "backend": "webgpu",
+      "dtype": "fp16"
+    },
+    {
+      "configuration": "INT8 + WASM（自动降级路径）",
+      "modelSizeMB": 22.83,
+      "vectorizationThroughput": { "singleTextMsMedian": 33.2, "singleTextMsMin": 28.7, "batch16MsMedian": 1037.2, "perTextInBatch16Ms": 64.83 },
+      "seekdbRetrievalLatencyMs": { "singleSqlHybridMedian": "9–21", "samples": [19, 21] },
+      "endToEndQueryLatencyMs": { "median": 56, "samples": [51, 62] },
+      "retrievalQuality": { "recall1": 0.75, "recall3": 1.0, "mrr": 0.854 },
+      "backend": "wasm",
+      "dtype": "q8"
+    }
+  ],
+  "stageTimings": {
+    "webgpuFp16": {
+      "modelDownloadMB": 45.23,
+      "modelLoadFirstMs": 7600,
+      "modelLoadCachedMs": 1500,
+      "warmupMs": 137,
+      "docVectorize13ChunksMs": 91,
+      "docVectorizePerChunkMs": 7.0,
+      "seekdbIngestAndVisibleCheckMs": 45,
+      "queryVectorizeMs": [23, 21, 23],
+      "seekdbHybridSearchMs": [9, 10, 22, 23],
+      "endToEndQueryMs": [31, 33, 46]
+    },
+    "wasmInt8": {
+      "modelDownloadMB": 22.83,
+      "modelLoadCachedMs": 1840,
+      "warmupMs": 113,
+      "docVectorize13ChunksMs": 1197,
+      "docVectorizePerChunkMs": 92.1,
+      "seekdbIngestAndVisibleCheckMs": 69,
+      "queryVectorizeMs": [43, 30],
+      "seekdbHybridSearchMs": [19, 21],
+      "endToEndQueryMs": [62, 51]
+    }
+  },
+  "beforeAfterOptimizations": [
+    {
+      "optimization": "加载后预热（短文本 + 真实查询长度两次推理）",
+      "before": "仅预热短文本时，WebGPU 第一条真实查询额外 ~400 ms（序列长度不同触发图/着色器编译）",
+      "after": "首条查询与稳态一致（23 ms）",
+      "evidence": "eval/out/backend-browser.json notes；应用状态条实测"
+    },
+    {
+      "optimization": "WebGPU 优先（相对 WASM）",
+      "before": "WASM+INT8：13 块文档向量化 1197 ms（92.1 ms/块）",
+      "after": "WebGPU+FP16：91 ms（7.0 ms/块），约 13×",
+      "evidence": "eval/out/backend-browser.json appRuns"
+    },
+    {
+      "optimization": "批量向量化（batch=16）",
+      "before": "逐条调用：单条 15.6 ms × 16 ≈ 250 ms（WebGPU）",
+      "after": "16 条批量 65.9 ms（4.12 ms/条）",
+      "evidence": "eval/out/backend-browser.json results"
+    },
+    {
+      "optimization": "模型缓存（Cache Storage）",
+      "before": "首次加载含下载：WebGPU 7.6 s / WASM 1.8–3.1 s（含下载最慢 6.7 s FP32）",
+      "after": "缓存后加载：WebGPU 1.5–2.2 s",
+      "evidence": "eval/out/backend-browser.json"
+    },
+    {
+      "optimization": "seekdb 单条 SQL 混合检索（向量+全文+RRF 在库内完成）",
+      "before": "两路 SQL + 应用侧融合（初版实现）",
+      "after": "单条 SQL，13 块语料 9–23 ms；且合并为一次数据库往返",
+      "evidence": "eval/out/e2e-api.json searchMsMed；/api/search 返回 hybrid=single-sql"
+    }
+  ],
+  "firstVsSubsequent": {
+    "firstLoad": "WebGPU+FP16 首次加载含模型下载约 7.6 s；WASM+INT8 约 1.8–3.1 s（缓存/下载混合）",
+    "cached": "WebGPU 1.5–2.2 s；WASM 1.8–3.1 s",
+    "firstQueryAfterLoad": "预热后首条查询与稳态一致（23 ms）",
+    "steadyStateQuery": "WebGPU 31–46 ms / WASM 51–62 ms（端到端）"
+  },
+  "rawData": [
+    "eval/out/backend-browser.json",
+    "eval/out/quality.json",
+    "eval/out/e2e-api.json"
+  ],
+  "reproduce": [
+    "npm install && npm start",
+    "npm run eval:quality（量化质量对比）",
+    "npm run eval:e2e（全链路冒烟）",
+    "npm run eval:sql（seekdb SQL 兼容性）",
+    "Chrome 打开 eval/backend-probe.html（浏览器后端微基准）"
+  ]
+}

@@ -23,6 +23,9 @@
   button:disabled{opacity:.55;cursor:default}
   .status{font-size:13px;color:var(--muted);margin-top:10px;min-height:20px}
   .status.ok{color:var(--ok)}
+  .backend{font-size:12px;margin-top:5px;color:var(--muted)}
+  .backend.warn{color:#b35900;font-weight:600}
+  .backend.gpu{color:var(--ok);font-weight:600}
   .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
   .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
   .hit{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
@@ -49,6 +52,7 @@
       <button id="pick" style="margin-left:8px">选择文件</button>
     </div>
     <div class="status" id="status">模型未加载</div>
+    <div class="backend" id="backend"></div>
     <div class="bar"><i id="bar"></i></div>
   </div>
 

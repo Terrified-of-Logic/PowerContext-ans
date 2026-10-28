@@ -1,7 +1,18 @@
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status');
+const backendEl = $('backend');
 const barEl = $('bar');
 const outEl = $('out');
+
+/** 推理后端必须对用户可见（验收项「后端与降级」要求明确提示） */
+function renderBackend(info) {
+  if (!info) return;
+  const isGpu = info.backend === 'webgpu';
+  backendEl.className = 'backend ' + (isGpu ? 'gpu' : 'warn');
+  backendEl.textContent = isGpu
+    ? `推理后端：WebGPU（${info.detail || 'GPU 加速' }）`
+    : `推理后端：WASM · 已自动降级 —— ${info.detail || '当前环境不支持 WebGPU'}`;
+}
 
 /* ---------------- Worker RPC ---------------- */
 
@@ -16,6 +27,10 @@ worker.addEventListener('message', (e) => {
     if (p.status === 'progress' && typeof p.progress === 'number') {
       setStatus(`下载模型中 ${p.file || ''} ${p.progress.toFixed(0)}%`, false, p.progress);
     }
+    return;
+  }
+  if (msg.type === 'backend') {
+    renderBackend(msg.payload);
     return;
   }
   const resolver = pending.get(msg.id);
@@ -233,8 +248,9 @@ $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
   try {
     setStatus('正在加载端侧模型（首次约 25–40 MB，之后走浏览器缓存）…', false, 0);
     const r = await call('load', {});
+    renderBackend({ backend: r.backend, degraded: r.backend !== 'webgpu', detail: r.backend === 'webgpu' ? 'WebGPU 加速已启用' : '当前环境不支持 WebGPU，使用 WASM' });
     setStatus(
-      `模型就绪（${r.dim} 维，q8 量化）· 加载 ${(r.loadMs / 1000).toFixed(1)}s · 预热 ${r.warmMs.toFixed(0)}ms，可以上传文件了`,
+      `模型就绪（${r.dim} 维，q8/INT8 量化）· 加载 ${(r.loadMs / 1000).toFixed(1)}s · 预热 ${r.warmMs.toFixed(0)}ms，可以上传文件了`,
       true,
       100
     );

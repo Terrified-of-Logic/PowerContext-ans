@@ -86,8 +86,9 @@ async function bootSeekdb() {
 }
 
 async function initSchema() {
-  // 先试带向量索引的建表（HNSW）；受限环境会报 Anon Mode，自动降级
-  const withIndex = `
+  // 向量索引 + 中文全文索引。混合检索必须由 seekdb 完成（题目 2.3 要求），
+  // 所以全文索引是必需的，不能退化成客户端拼合。
+  const withHnsw = (parser) => `
     CREATE TABLE IF NOT EXISTS ${TABLE} (
       id        INT PRIMARY KEY AUTO_INCREMENT,
       doc_id    VARCHAR(255) NOT NULL,
@@ -96,6 +97,7 @@ async function initSchema() {
       content   TEXT NOT NULL,
       embedding VECTOR(${DIM}),
       VECTOR INDEX idx_vec (embedding) WITH (DISTANCE=l2, TYPE=hnsw, LIB=vsag),
+      FULLTEXT INDEX idx_ft (content) WITH PARSER ${parser},
       KEY idx_doc (doc_id)
     ) ORGANIZATION = HEAP`;
 
@@ -110,19 +112,29 @@ async function initSchema() {
       KEY idx_doc (doc_id)
     ) ORGANIZATION = HEAP`;
 
-  try {
-    await pool.query(withIndex);
-    mode = 'hnsw';
-    console.log('[seekdb] 建表完成，向量索引 HNSW 已启用');
-  } catch (e) {
-    if (/Anon Mode|not supported/i.test(e.message)) {
-      await pool.query(plain);
-      mode = 'full-scan';
-      console.log('[seekdb] 当前实例不允许建向量索引，降级为全表扫描（数据量小可接受）');
-    } else {
-      throw e;
+  // 依次尝试：ik 分词 → ngram 分词 → 无全文索引
+  for (const parser of ['ik', 'ngram']) {
+    try {
+      await pool.query(withHnsw(parser));
+      mode = `hnsw+fts(${parser})`;
+      console.log(`[seekdb] 建表完成：HNSW 向量索引 + 全文索引（parser=${parser}）`);
+      return;
+    } catch (e) {
+      console.log(`[seekdb] parser=${parser} 不可用：${String(e.message).slice(0, 80)}`);
     }
   }
+
+  // 退化：先试带向量索引但不带全文索引
+  try {
+    await pool.query(withHnsw.replace(/\s*FULLTEXT INDEX idx_ft \(content\) WITH PARSER \$\{parser\},/, ''));
+    mode = 'hnsw';
+    console.log('[seekdb] 建表完成：仅 HNSW 向量索引（无全文索引）');
+    return;
+  } catch { /* ignore */ }
+
+  await pool.query(plain);
+  mode = 'full-scan';
+  console.log('[seekdb] 当前实例限制较多，降级为全表扫描');
 }
 
 /* ---------------- 工具 ---------------- */
@@ -164,6 +176,17 @@ app.post('/api/ingest', async (req, res) => {
   }
 
   try {
+    // 增量导入：同一文件的旧分块先删掉再写入，避免重复堆积，
+    // 新增文件不影响已有内容（验收要求「支持增量导入、索引刷新后新增内容可检索」）
+    const docIds = [...new Set(records.map((r) => String(r.doc_id)))];
+    if (docIds.length) {
+      const [del] = await pool.query(
+        `DELETE FROM ${TABLE} WHERE doc_id IN (?)`,
+        [docIds]
+      );
+      if (del.affectedRows) console.log(`[ingest] 覆盖旧分块 ${del.affectedRows} 条`);
+    }
+
     const values = records.map((r) => [
       String(r.doc_id).slice(0, 255),
       Number(r.chunk_index) || 0,
@@ -189,77 +212,61 @@ app.post('/api/search', async (req, res) => {
     return res.status(400).json({ error: `vector 必须是 ${DIM} 维数组` });
   }
 
+  const k = Math.max(1, Math.min(50, Number(topk) || 8));
+
   try {
     const lit = vecLiteral(vector);
+    const q = String(query || '').trim();
+    const hasFts = mode.includes('fts');
 
-    // 路 1：向量距离（seekdb 的 l2_distance 在 SQL 里算）
-    const [vecRows] = await pool.query(
-      `SELECT id, l2_distance(embedding, ?) AS dist
-         FROM ${TABLE}
-        ORDER BY dist ASC
-        LIMIT 50`,
-      [lit]
-    );
+    // 混合检索由 seekdb 一条 SQL 完成（题目 2.3 要求）：
+    //   全文得分 MATCH ... AGAINST  +  向量距离 l2_distance
+    //   两路排名用窗口函数在 SQL 内做 RRF 融合，服务端不再分别取两路再拼合
+    const sql = hasFts
+      ? `SELECT id, doc_id, chunk_idx, title, content, ft_score, vec_dist,
+                (1.0 / (60 + r_vec)) + (1.0 / (60 + r_ft)) AS score
+           FROM (
+             SELECT b.*,
+                    ROW_NUMBER() OVER (ORDER BY vec_dist ASC)  AS r_vec,
+                    ROW_NUMBER() OVER (ORDER BY ft_score DESC) AS r_ft
+               FROM (
+                 SELECT id, doc_id, chunk_idx, title, content,
+                        MATCH(content) AGAINST(? IN NATURAL LANGUAGE MODE) AS ft_score,
+                        l2_distance(embedding, ?) AS vec_dist
+                   FROM ${TABLE}
+               ) b
+           ) t
+          ORDER BY score DESC
+          LIMIT ${k}`
+      : `SELECT id, doc_id, chunk_idx, title, content, 0 AS ft_score, vec_dist,
+                (1.0 / (60 + r_vec)) AS score
+           FROM (
+             SELECT b.*, ROW_NUMBER() OVER (ORDER BY vec_dist ASC) AS r_vec
+               FROM (
+                 SELECT id, doc_id, chunk_idx, title, content,
+                        l2_distance(embedding, ?) AS vec_dist
+                   FROM ${TABLE}
+               ) b
+           ) t
+          ORDER BY score DESC
+          LIMIT ${k}`;
 
-    // 路 2：关键词命中次数
-    const terms = String(query).split(/\s+/).filter(Boolean).slice(0, 6);
-    let kwRows = [];
-    if (terms.length) {
-      const cond = terms
-        .map(() => `(content LIKE ? ESCAPE '\\\\' OR title LIKE ? ESCAPE '\\\\')`)
-        .join(' OR ');
-      const params = [];
-      for (const t of terms) {
-        const p = `%${escapeLike(t)}%`;
-        params.push(p, p);
-      }
-      const [rows] = await pool.query(
-        `SELECT id, content, title FROM ${TABLE} WHERE ${cond} LIMIT 200`,
-        params
-      );
-      kwRows = rows;
-    }
+    const params = hasFts ? [q, lit] : [lit];
+    const [rows] = await pool.query(sql, params);
 
-    // 混合：RRF 融合两路排名
-    const vecRank = vecRows.map((r) => r.id);
-    const kwRank = kwRows.map((r) => r.id);
-    const fused = rrfFuse([vecRank, kwRank].filter((l) => l.length));
+    const hits = rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      content: r.content,
+      doc_id: r.doc_id,
+      chunk_idx: r.chunk_idx,
+      dist: Number(r.vec_dist),
+      ft_score: Number(r.ft_score),
+      kw_hits: Number(r.ft_score) > 0 ? 1 : 0,
+      score: Number(r.score),
+    }));
 
-    const top = fused.slice(0, topk);
-    if (!top.length) return res.json({ hits: [] });
-
-    const ids = top.map(([id]) => id);
-    const [detail] = await pool.query(
-      `SELECT id, doc_id, chunk_idx, title, content FROM ${TABLE} WHERE id IN (?)`,
-      [ids]
-    );
-    const byId = new Map(detail.map((d) => [d.id, d]));
-
-    const distById = new Map(vecRows.map((r) => [r.id, Number(r.dist)]));
-    const kwCount = new Map();
-    for (const r of kwRows) {
-      const text = `${r.title}\n${r.content}`.toLowerCase();
-      kwCount.set(r.id, terms.reduce((n, t) => n + (text.split(t.toLowerCase()).length - 1), 0));
-    }
-
-    const hits = top
-      .map(([id, score]) => {
-        const d = byId.get(id);
-        if (!d) return null;
-        return {
-          id,
-          title: d.title,
-          content: d.content,
-          doc_id: d.doc_id,
-          chunk_idx: d.chunk_idx,
-          dist: distById.get(id) ?? 999,
-          kw_hits: kwCount.get(id) ?? 0,
-          score,
-        };
-      })
-      .filter(Boolean);
-
-    res.json({ hits, indexMode: mode, candidates: { vec: vecRank.length, kw: kwRank.length } });
+    res.json({ hits, indexMode: mode, fusion: 'rrf-in-sql' });
   } catch (e) {
     console.error('[search]', e.message);
     res.status(500).json({ error: e.message });

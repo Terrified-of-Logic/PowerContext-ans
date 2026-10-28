@@ -1,0 +1,97 @@
+{
+  "model": "onnx-community/bge-small-zh-v1.5-ONNX",
+  "quantization": "INT8 (q8)",
+  "pooling": "cls",
+  "corpus_chunks": 13,
+  "queries": 8,
+  "metrics": {
+    "recall_at_1": 0.875,
+    "recall_at_3": 1,
+    "recall_at_5": 1,
+    "mrr": 0.9167,
+    "ndcg_at_5": 0.9375
+  },
+  "timing": {
+    "doc_embed_ms_total": 107,
+    "doc_embed_ms_per_chunk": 8.2,
+    "doc_embed_chunks_per_sec": 121.5,
+    "query_embed_ms_median": 5
+  },
+  "details": [
+    {
+      "query": "向量索引怎么建",
+      "expect": [
+        "VECTOR 列",
+        "VECTOR INDEX"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "seekdb 支持在表上声明 VECTOR 列，并为它建立 HNSW 向量索引。"
+    },
+    {
+      "query": "RRF 是什么",
+      "expect": [
+        "Reciprocal Rank Fusion",
+        "RRF 的好处"
+      ],
+      "rank": 3,
+      "hit": true,
+      "top1": "seekdb 是面向 AI Agent 的一体化检索数据库，把向量、全文、结构化"
+    },
+    {
+      "query": "为什么要把推理放进 Worker",
+      "expect": [
+        "Web Worker"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "在浏览器里做向量化时，应当把推理放进 Web Worker， 否则会阻塞主线程，"
+    },
+    {
+      "query": "混合检索有什么好处",
+      "expect": [
+        "混合检索把两路结果融合"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "单纯的向量检索对专有名词不敏感，单纯的关键词检索又缺乏语义泛化能力。 混合检索把"
+    },
+    {
+      "query": "量化到 8 位有什么好处",
+      "expect": [
+        "8 位整数"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "把模型量化到 8 位整数（q8）之后，权重体积大约缩小到原来的四分之一， 推理延"
+    },
+    {
+      "query": "端侧推理有什么好处",
+      "expect": [
+        "数据不出本地",
+        "端侧推理指模型在用户设备上运行"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "端侧推理指模型在用户设备上运行，而不是调用远程 API。 在浏览器里实现端侧推理"
+    },
+    {
+      "query": "l2 和 cosine 距离怎么用",
+      "expect": [
+        "l2_distance"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "建好之后，查询可以用 l2_distance 或 cosine_distance"
+    },
+    {
+      "query": "嵌入式模式有什么价值",
+      "expect": [
+        "嵌入式模式的价值"
+      ],
+      "rank": 1,
+      "hit": true,
+      "top1": "嵌入式模式的价值在于：不需要单独部署服务，应用进程启动时顺带拉起数据库， 数据落"
+    }
+  ]
+}

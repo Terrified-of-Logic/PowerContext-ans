@@ -1,3 +1,14 @@
+# ===== 测试日志 =====
+# 说明       : 修改后（全部通过）
+# 命令       : node test/orders.test.js        （工作目录：minimax/business）
+# 运行时     : Node.js v24.17.0
+# 被测代码   : business/src/orders.js
+# 代码版本   : sha256:16bfdf8db82a7a0b   （patched-orders.js，MiniMax 生成）
+# 测试集     : business/test/orders.test.js（修改前后完全一致，未改动）
+# 退出码     : 0
+# 采集时间   : 2026-10-27T14:42:33Z（UTC）
+# =====================
+
 TAP version 13
 # Subtest: R1 按状态过滤：只返回指定状态的订单
 ok 1 - R1 按状态过滤：只返回指定状态的订单

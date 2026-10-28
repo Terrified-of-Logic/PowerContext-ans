@@ -1,3 +1,14 @@
+# ===== 测试日志 =====
+# 说明       : 修改前（目标功能失败）
+# 命令       : node test/orders.test.js        （工作目录：minimax/business）
+# 运行时     : Node.js v24.17.0
+# 被测代码   : business/src/orders.js
+# 代码版本   : sha256:16405a7f0213915f   （orders.before.js，R1 未实现）
+# 测试集     : business/test/orders.test.js（修改前后完全一致，未改动）
+# 退出码     : 1
+# 采集时间   : 2026-10-27T14:42:33Z（UTC）
+# =====================
+
 TAP version 13
 # Subtest: R1 按状态过滤：只返回指定状态的订单
 not ok 1 - R1 按状态过滤：只返回指定状态的订单

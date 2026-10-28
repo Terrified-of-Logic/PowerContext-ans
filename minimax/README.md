@@ -66,25 +66,41 @@ npm install
 
 ### 2. 安装并启动 PowerContext
 
+**配置文件已随仓库提供**（`minimax/powercontext.env`），**无需执行 `config init`**。
+该配置为 basic 模式：免推理模型、SQLite 落盘、仅监听 127.0.0.1、鉴权关闭、不含任何凭据。
+
+推荐一条命令：
+
 ```bash
-# 安装 CLI（只需一次）
+npm run setup
+```
+
+它会依次：检查 Node 与依赖 → 检测 PowerContext 是否已运行 → 未安装则自动装 uv 与
+PowerContext（走清华 PyPI 镜像）→ 使用仓库自带配置 → 尝试后台启动并等待就绪。
+
+若当前环境不允许常驻子进程，它会打印下面这条前台启动命令，手动执行即可：
+
+```bash
+powercontext server run --env-file powercontext.env
+```
+
+看到 `PowerContext Server is ready` 即成功，监听 `http://127.0.0.1:8000`。
+
+手工安装（`npm run setup` 不可用时）：
+
+```bash
 pip install uv
-uv tool install --force "powercontext[cli,server]==1.4.1"
-
-# 生成配置（免模型模板，不需要推理 API）
-powercontext config init --template -o ../powercontext/.env
-
-# 启动服务，监听 http://127.0.0.1:8000
-powercontext server run --env-file ../powercontext/.env
+UV_DEFAULT_INDEX="https://pypi.tuna.tsinghua.edu.cn/simple" \
+  uv tool install --force "powercontext[cli,server]==1.4.1"
+powercontext server run --env-file powercontext.env
 ```
 
 说明：
 
-- 若 `powercontext` 命令不在 PATH，可用 `uv tool run powercontext ...`，或在
+- 若 `powercontext` 不在 PATH，可用 `uv tool run powercontext ...`，或在
   `~/.local/bin/`（Windows 为 `%USERPROFILE%\.local\bin\`）下找到可执行文件直接用
 - 配置使用 SQLite 落盘，不需要额外数据库
 - **未配置推理模型**，只使用显式记忆写入，不需要任何模型 Key
-- 服务启动后出现 `PowerContext Server is ready` 即成功
 
 > 若 PowerContext 未启动，上下文模块与 Agent 仍可运行，只是「任务当前状态」一节会显示不可用提示。
 > 但**验收项「状态能够复用」需要它处于运行状态**。
